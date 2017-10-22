@@ -48,6 +48,11 @@ To train the network, simply run
 th main.lua
 ```
 
+To evaluate performance on the benchmark, run
+```bash
+th evaluate.lua
+```
+
 ## Contact
 
 If you have any questions, please contact me at chenliu@wustl.edu.
