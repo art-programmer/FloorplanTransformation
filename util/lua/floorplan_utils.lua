@@ -4,7 +4,7 @@ local pl = require 'pl.import_into' ()
 cv = require 'cv'
 require 'cv.imgproc'
 py = require('python')
-paths.dofile('/home/chenliu/Projects/Floorplan/floorplan/InverseCAD/models/SpatialSymmetricPadding.lua')
+--paths.dofile('/home/chenliu/Projects/Floorplan/floorplan/InverseCAD/models/SpatialSymmetricPadding.lua')
 
 local utils = {}
 
@@ -2870,10 +2870,9 @@ function utils.printRepresentation(representation)
    end
 end
 
-function utils.predictRepresentation(floorplan)
+function utils.predictRepresentation(modelPath, floorplan)
    if utils.model == nil then
-      utils.model = torch.load('/home/chenliu/Projects/Floorplan/models/representation-segmentation/model_best.t7')
-      --utils.model = torch.load('/home/chenliu/Projects/Floorplan/models/yolo-floorplan-representation/model_best.t7')
+      utils.model = torch.load(modelPath)
    end
 
    local width = floorplan:size(3)
@@ -2885,11 +2884,9 @@ function utils.predictRepresentation(floorplan)
    local model = utils.model
    model:evaluate()
 
-   package.path = '../InverseCAD/datasets/?.lua;' .. package.path
-   package.path = '../InverseCAD/?.lua;' .. package.path
-   --local dataset = require('/home/chenliu/Projects/Floorplan/floorplan/InverseCAD/datasets/floorplan-representation')(nil, nil, 'val')
-   --local dataset = require('floorplan-representation')(nil, nil, 'val')
-   --local dataset = require 'floorplan-representation'({}, nil, 'val')
+   package.path = '../code/datasets/?.lua;' .. package.path
+   package.path = '../code/?.lua;' .. package.path
+
 
    local dataset = require('floorplan-representation')
    local floorplanNormalized = dataset:preprocessResize(sampleDim, sampleDim)(floorplan)
@@ -2900,18 +2897,7 @@ function utils.predictRepresentation(floorplan)
    local prob, pred = torch.max(output[2]:double(), 2)
    pred = pred[{{}, 1}]:view(-1, 8, 8, 8):transpose(3, 4):transpose(2, 3):double()
    local outputRepresentation = torch.cat(output[1]:double(), pred, 2)
-   --[[
-      local floorplan = self.input[batchIndex]:double()
-      image.save(self.opt.tmp .. '/floorplan_' .. checkedResultIndex .. '.png', floorplan)
-      local representationTensor = self.representationInput[batchIndex]
-      local representationPreview = rep_ut.convertTensorToRepresentation(self.opt.sampleDim, self.opt.sampleDim, representationTensor, 0.5)
-      local representationImage = rep_ut.drawRepresentationImage(self.opt.sampleDim, self.opt.sampleDim, self.opt.gridDim, self.opt.gridDim, floorplan, representationPreview)
-      image.save(self.opt.tmp .. '/target_' .. checkedResultIndex .. '.png', representationImage)
-      local representationPreview = rep_ut.convertTensorToRepresentation(self.opt.sampleDim, self.opt.sampleDim, representationTensor, 0.5)
-      local representationImage = rep_ut.drawRepresentationImage(self.opt.sampleDim, self.opt.sampleDim, self.opt.gridDim, self.opt.gridDim, floorplan, representationPreview)
-      image.save(self.opt.tmp .. '/prediction_' .. checkedResultIndex .. '.png', representationImage)
-      checkedResultIndex = checkedResultIndex + 1
-   ]]--
+
    local representationTensor = outputRepresentation[1]
    local representation = utils.convertTensorToRepresentation(sampleDim, sampleDim, representationTensor, 0.5)
    local representationUnscaled = utils.scaleRepresentation(representation, sampleDim, sampleDim, width, height)
@@ -2919,13 +2905,6 @@ function utils.predictRepresentation(floorplan)
    return representationGeneral
 end
 
---[[
-   lines = {}
-   table.insert(lines, {{1, 1}, {1, 10}})
-   table.insert(lines, {{1, 11}, {20, 11}})
-   print(lines)
-   print(stitchLines(lines, 5))
-]]--
 
 function utils.predictSegmentation(floorplan, walls, preview)
    if utils.model == nil then
@@ -4058,7 +4037,7 @@ function utils.filterPoints(width, height, points, pointsConfidence, lineWidth, 
    return newPoints
 end
 
-function utils.invertFloorplan(floorplan, withoutQP, relaxedQP, useStack)
+function utils.invertFloorplan(modelPath, floorplan, withoutQP, relaxedQP, useStack)
    local lineWidth = lineWidth or 3
    local useStack = useStack or false
 
@@ -4071,76 +4050,7 @@ function utils.invertFloorplan(floorplan, withoutQP, relaxedQP, useStack)
    local floorplan = image.scale(floorplan, width, height)
 
 
-   if false then
-      local sampleDim = 256
-      local gridDim = 8
-      local numAnchorBoxes = 13
-      local nClasses = 13
-
-      if utils.modelJunction == nil then
-         --utils.modelJunction = torch.load('/home/chenliu/Projects/Floorplan/models/junction-wall-stack-floorplan-representation-16/model_best.t7')
-         utils.modelJunction = torch.load('/home/chenliu/Projects/Floorplan/models/junction-heatmap/model_best.t7')
-      end
-
-      package.path = '../InverseCAD/datasets/?.lua;' .. package.path
-      package.path = '../InverseCAD/?.lua;' .. package.path
-      local dataset = require('floorplan-representation')
-      local floorplanNormalized = dataset:preprocessResize(sampleDim, sampleDim)(floorplan)
-      local input = floorplanNormalized:repeatTensor(1, 1, 1, 1):cuda()
-
-
-
-      local predictionJunction = utils.modelJunction:forward(input):squeeze()
-      local representationPredicted = {}
-      local points = {}
-      local pointLabels = {}
-      for i = 1, 13 do
-         local pointMask = predictionJunction[i]:double():gt(0.5)
-         pointMask = image.erode(pointMask)
-         if ##pointMask:nonzero() > 0 then
-            local components, numComponents = utils.findConnectedComponents(pointMask)
-            numComponents = numComponents - 1
-            local itemInfo = utils.getItemInfo('points', i)
-            for componentIndex = 1, numComponents do
-               local indices = components:eq(componentIndex):nonzero()
-               local mean = torch.mean(indices:double(), 1)[1]
-
-               --local x = math.max(math.min(torch.round(mean[2]), width), 1)
-               --local y = math.max(math.min(torch.round(mean[1]), height), 1)
-               --table.insert(pointsConfidence, predictionJunction[i][y][x])
-
-
-               local x = mean[2] / width * oriWidth
-               local y = mean[1] / height * oriHeight
-
-               table.insert(points, {{x, y}, {x, y}, itemInfo})
-            end
-         end
-      end
-      representationPredicted.points = points
-      --utils.saveRepresentation('test/points.txt', {points = points})
-
-      if true then
-         local wallMask = torch.ones(oriHeight, oriWidth)
-         if not utils.modelWall then
-            utils.modelWall = torch.load('/home/chenliu/Projects/Floorplan/models/wall/model_best.t7')
-         end
-         wallMask = image.scale(utils.modelWall:forward(input)[1]:double(), oriWidth, oriHeight, 'simple')
-         image.save('test/wall.png', wallMask)
-      end
-
-
-      --representationPredicted.doors = utils.detectItems(floorplanOri:clone(), 'doors')
-      --representationPredicted.icons = utils.detectItems(floorplanOri:clone(), 'icons')
-      --print(#representationPredicted.icons)
-      --print(#representationPredicted.doors)
-      representationPredicted.doors = {}
-      representationPredicted.icons = {}
-      utils.saveRepresentation('test/representation.txt', representationPredicted)
-   end
-
-
-   local junctionHeatmaps, doorHeatmaps, iconHeatmaps, segmentations = utils.estimateHeatmaps(floorplanOri:clone(), 'single', useStack)
+   local junctionHeatmaps, doorHeatmaps, iconHeatmaps, segmentations = utils.estimateHeatmaps(modelPath, floorplanOri:clone(), 'single', useStack)
    --local junctionHeatmaps, doorHeatmaps, iconHeatmaps, _ = utils.estimateHeatmaps(floorplanOri:clone(), 'single', true)
 
 
@@ -4155,97 +4065,10 @@ function utils.invertFloorplan(floorplan, withoutQP, relaxedQP, useStack)
    end
 
 
-   --[[
-      local heatmap = junctionHeatmaps[i]:repeatTensor(1, 1, 1)
-      local heatmapImage = torch.cat(torch.cat((1 - heatmap) * 2 / 3, torch.ones(#heatmap), 1), torch.ones(#heatmap) * 0.5, 1)
-      heatmapImage = image.hsl2rgb(heatmapImage)
-      image.save('test/heatmap_color_' .. i .. '.png', heatmapImage)
-   ]]--
-
-
-   -- local threshold = 0.3
-   -- for c = 1, 4 do
-   --    local img = floorplanOri:clone()
-   --    for i = 1, 3 do
-   -- 	 img[i][iconHeatmaps[c]:gt(threshold)] = 0
-   --    end
-   --    if c < 4 then
-   -- 	 img[c][iconHeatmaps[c]:gt(threshold)] = 1
-   --    else
-   -- 	 img[1][iconHeatmaps[c]:gt(threshold)] = 1
-   -- 	 img[2][iconHeatmaps[c]:gt(threshold)] = 1
-   --    end
-   --    image.save('test/heatmaps/icon_' .. c .. '.png', img)
-   -- end
-
-   --img[1][iconHeatmaps[4]:gt(threshold)]:copy(iconHeatmaps[4][iconHeatmaps[4]:gt(threshold)])
-   --img[2][iconHeatmaps[4]:gt(threshold)]:copy(iconHeatmaps[4][iconHeatmaps[4]:gt(threshold)])
-   --img[1][iconHeatmaps[4]:gt(threshold)] = 1
-   --img[2][iconHeatmaps[4]:gt(threshold)] = 1
-
-
    pl.dir.makepath('test/segmentation/')
    for segmentIndex = 1, 30 do
       image.save('test/segmentation/segment_' .. segmentIndex .. '.png', segmentations[segmentIndex])
    end
-
-   --[[
-      local prob, pred = torch.max(segmentations:narrow(1, 1, 13), 1)
-      pred = pred[1]
-      image.save('test/segmentation_1.png', utils.drawSegmentation(pred))
-      local prob, pred = torch.max(segmentations:narrow(1, 14, 17), 1)
-      pred = pred[1]
-      pred[pred:eq(17)] = -1
-      pred[pred:gt(11)] = 11
-      image.save('test/segmentation_2.png', utils.drawSegmentation(pred))
-   ]]--
-
-   if false then
-      pl.dir.makepath('test/segmentation/')
-      if utils.modelSegmentation == nil then
-         utils.modelSegmentation = torch.load('/home/chenliu/Projects/Floorplan/models/segmentation/model_best.t7')
-      end
-      local outputSegmentation = utils.modelSegmentation:forward(input)
-
-      local prob, predictionSegmentation = torch.max(outputSegmentation, 2)
-      predictionSegmentation = predictionSegmentation[{{}, 1}]:view(sampleDim, sampleDim)
-      for segmentIndex = 1, 10 do
-         image.save('test/segmentation/segment_' .. segmentIndex .. '.png', image.scale(predictionSegmentation:eq(segmentIndex):double(), oriWidth, oriHeight, 'simple'))
-      end
-      local backgroundSegmentIndex = 26
-      image.save('test/segmentation/segment_0.png', image.scale(predictionSegmentation:eq(backgroundSegmentIndex):double(), oriWidth, oriHeight, 'simple'))
-      local iconMasks = torch.zeros(10, height, width):byte()
-      local iconIndexMap = torch.range(1, 13)
-      for i = 3, 8 do
-         iconIndexMap[i] = i - 1
-      end
-      for i = 9, 10 do
-         iconIndexMap[i] = i - 2
-      end
-      for i = 11, 13 do
-         iconIndexMap[i] = i - 3
-      end
-      for iconIndex = 11, 23 do
-         iconMasks[iconIndexMap[iconIndex - 10]]:add(predictionSegmentation:eq(iconIndex))
-      end
-      for i = 1, 10 do
-         image.save('test/segmentation/segment_' .. (11 + i) .. '.png', image.scale(iconMasks[i]:gt(0):double(), oriWidth, oriHeight, 'simple'))
-      end
-      image.save('test/segmentation/segment_11.png', image.scale(predictionSegmentation:eq(backgroundSegmentIndex):double(), oriWidth, oriHeight, 'simple'))
-      image.save('test/segmentation/segment_22.png', image.scale(predictionSegmentation:eq(25):double(), oriWidth, oriHeight, 'simple'))
-      image.save('test/segmentation/segment_24.png', image.scale(predictionSegmentation:eq(24):double(), oriWidth, oriHeight, 'simple'))
-      --[[
-         local softmax = nn.SoftMax():cuda()
-         local predictionSegmentation = softmax:forward(outputSegmentation):double()
-         local outputDim = predictionSegmentation:size(1)^0.5
-         predictionSegmentation = predictionSegmentation:view(outputDim, outputDim, -1):transpose(2, 3):transpose(1, 2)
-         print(#predictionSegmentation)
-         for segmentIndex = 1, predictionSegmentation:size(1) do
-         image.save('test/segmentation/segment_' .. segmentIndex .. '.png', image.scale(predictionSegmentation[segmentIndex], oriWidth, oriHeight, 'simple'))
-         end
-      ]]--
-   end
-
 
    local representation = {}
    py.execute('import os')
@@ -4305,9 +4128,9 @@ function utils.invertFloorplan(floorplan, withoutQP, relaxedQP, useStack)
    end
 
    if relaxedQP then
-      py.execute('os.system("python ../InverseCAD/PostProcessing/QP_clean.py")')
+      py.execute('os.system("python ../code/PostProcessing/QP_clean.py")')
    else
-      py.execute('os.system("python ../InverseCAD/PostProcessing/QP.py")')
+      py.execute('os.system("python ../code/PostProcessing/QP.py")')
    end
 
 
@@ -9034,245 +8857,180 @@ function utils.extractWallPoints(masks, numPoints, lineWidth, lineMinLength, get
    return points
 end
 
-function utils.estimateHeatmaps(floorplan, scaleType)
+function utils.estimateHeatmaps(modelPath, floorplan, scaleType)
 
    local scaleType = scaleType or 'single'
-   if false then
-      local width, height = floorplan:size(3), floorplan:size(2)
+   local width, height = floorplan:size(3), floorplan:size(2)
+   local sampleDim = 256
 
-      if not utils.modelHeatmap then
-         utils.modelHeatmap = torch.load('/home/chenliu/Projects/Floorplan/models/junction-all/model_best.t7')
-         utils.modelHeatmap:evaluate()
-      end
-
-
-      package.path = '../InverseCAD/datasets/?.lua;' .. package.path
-      package.path = '../InverseCAD/?.lua;' .. package.path
-      local dataset = require('floorplan-representation')
-      local sampleDim = 256
-      local floorplanNormalized = dataset:preprocessResize(sampleDim, sampleDim)(floorplan)
-      local input = floorplanNormalized:repeatTensor(1, 1, 1, 1):cuda()
-      local output = utils.modelHeatmap:forward(input)[1]
-
-      local nClasses = 13
-      --local junctionHeatmaps = torch.zeros(nClasses, height, width)
-      local junctionHeatmaps = output:narrow(1, 1, 13):double()
-
-      local doorHeatmaps = torch.zeros(4, sampleDim, sampleDim)
-      local confidenceMasks = output:narrow(1, 13 + 1, 13 * 4):double()
-      for number = 1, nClasses do
-         print(number)
-         local heatmap_1, heatmap_2 = fp_ut.extractLinePoints(confidenceMasks[4 * (number - 1) + 1], confidenceMasks[4 * (number - 1) + 2], 1, nil, nil, nil, true)
-         local heatmap_3, heatmap_4 = fp_ut.extractLinePoints(confidenceMasks[4 * (number - 1) + 3], confidenceMasks[4 * (number - 1) + 4], 2, nil, nil, nil, true)
-         doorHeatmaps[4]:add(heatmap_1)
-         doorHeatmaps[2]:add(heatmap_2)
-         doorHeatmaps[1]:add(heatmap_3)
-         doorHeatmaps[3]:add(heatmap_4)
-      end
-      doorHeatmaps:div(nClasses)
-
-      local iconHeatmaps = torch.zeros(4, sampleDim, sampleDim)
-      local confidenceMasks = output:narrow(1, 13 * 5 + 1, 13 * 4):double()
-      for number = 1, nClasses do
-         print(number)
-         image.save('test/mask_1.png', confidenceMasks[4 * (number - 1) + 1])
-         image.save('test/mask_2.png', confidenceMasks[4 * (number - 1) + 2])
-         image.save('test/mask_3.png', confidenceMasks[4 * (number - 1) + 3])
-         image.save('test/mask_4.png', confidenceMasks[4 * (number - 1) + 4])
-         local heatmap_1, heatmap_2, heatmap_3, heatmap_4 = fp_ut.extractRectanglePoints(confidenceMasks[4 * (number - 1) + 1], confidenceMasks[4 * (number - 1) + 2], confidenceMasks[4 * (number - 1) + 3], confidenceMasks[4 * (number - 1) + 4], numPoints, true)
-         iconHeatmaps[3]:add(heatmap_1)
-         iconHeatmaps[4]:add(heatmap_2)
-         iconHeatmaps[2]:add(heatmap_3)
-         iconHeatmaps[1]:add(heatmap_4)
-      end
-      iconHeatmaps:div(nClasses)
-
-      junctionHeatmaps = image.scale(junctionHeatmaps, width, height)
-      doorHeatmaps = image.scale(doorHeatmaps, width, height)
-      iconHeatmaps = image.scale(iconHeatmaps, width, height)
-
-      return junctionHeatmaps, doorHeatmaps, iconHeatmaps
-   else
-      local width, height = floorplan:size(3), floorplan:size(2)
-      local sampleDim = 256
-
-      if not utils.modelHeatmap then
-         --utils.modelHeatmap = torch.load('/home/chenliu/Projects/Floorplan/models/heatmap-all/model_best.t7')
-         --utils.modelHeatmap = torch.load('/home/chenliu/Projects/Floorplan/models/heatmap-mixed-backup/model_best_1_4.t7')
-         if useStack then
-            utils.modelHeatmap = torch.load('/home/chenliu/Projects/Floorplan/models/junction-heatmap-stack/model_best.t7')
-            utils.modelJunction:add(nn.SelectTable(2):cuda())
-         else
-            utils.modelHeatmap = torch.load('/home/chenliu/Projects/Floorplan/models/heatmap-segmentation/model_best.t7')
-         end
-
-
-         local heatmapBranch = nn.Sequential():add(nn.MulConstant(0.1))
-         local segmentationBranch_1 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, sampleDim, sampleDim, 13)):add(nn.Transpose({3, 4}, {2, 3}))
-         local segmentationBranch_2 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, sampleDim, sampleDim, 17)):add(nn.Transpose({3, 4}, {2, 3}))
-         utils.modelHeatmap:add(nn.ParallelTable():add(heatmapBranch):add(segmentationBranch_1):add(segmentationBranch_2):cuda())
-         utils.modelHeatmap:add(nn.JoinTable(1, 3):cuda())
-         utils.modelHeatmap:evaluate()
-
-      end
-
-
-      package.path = '../InverseCAD/datasets/?.lua;' .. package.path
-      package.path = '../InverseCAD/?.lua;' .. package.path
-      local dataset = require('floorplan-representation')
-      dataset.split = 'val'
-
-      local output
-      if scaleType == 'single' then
-         --local input = dataset:preprocessResize(sampleDim, sampleDim)(floorplan):repeatTensor(1, 1, 1, 1):cuda()
-         --output = utils.modelHeatmap:forward(input)[1]:double()
-
-
-         local floorplanScaled = dataset:preprocessScale(sampleDim)(floorplan)
-         --image.save('test/scale.png', floorplanScaled:double())
-         local offsetX, offsetY
-         if floorplanScaled:size(2) < sampleDim then
-            offsetY = math.floor((sampleDim - floorplanScaled:size(2)) / 2)
-            offsetX = 0
-         else
-            offsetX = math.floor((sampleDim - floorplanScaled:size(3)) / 2)
-            offsetY = 0
-         end
-         local temp = torch.zeros(3, sampleDim, sampleDim)
-         temp:narrow(2, offsetY + 1, floorplanScaled:size(2)):narrow(3, offsetX + 1, floorplanScaled:size(3)):copy(floorplanScaled)
-         local input = temp:repeatTensor(1, 1, 1, 1):cuda()
-
-         output = utils.modelHeatmap:forward(input)[1]:double()
-         output = image.crop(output, offsetX, offsetY, offsetX + floorplanScaled:size(3), offsetY + floorplanScaled:size(2))
-
-         --[[
-            image.save('test/heatmaps/floorplan.png', dataset:postprocess()(input[1]))
-            for i = 1, 13 do
-            image.save('test/heatmaps/junction_heatmap_' .. i .. '.png', output[i])
-            end
-            os.exit(1)
-         ]]--
-      elseif scaleType == 'full' then
-         local floorplanNormalized = dataset:preprocessNormalization()(floorplan)
-      else
-         local floorplanNormalized = dataset:preprocessNormalization()(floorplan)
-
-         local inputParamMap = {}
-         local scale = 0
-         local inputs
-         while math.max(floorplanNormalized:size(3), floorplanNormalized:size(2)) > sampleDim / 2 or not inputs do
-            for offsetX = 0, floorplanNormalized:size(3) - 1, sampleDim do
-               for offsetY = 0, floorplanNormalized:size(2) - 1, sampleDim do
-                  local input = torch.zeros(3, sampleDim, sampleDim)
-                  local inputWidth = math.min(sampleDim, floorplanNormalized:size(3) - offsetX)
-                  local inputHeight = math.min(sampleDim, floorplanNormalized:size(2) - offsetY)
-
-                  input:narrow(2, 1, inputHeight):narrow(3, 1, inputWidth):copy(image.crop(floorplanNormalized, offsetX, offsetY, offsetX + inputWidth, offsetY + inputHeight))
-
-                  input = input:repeatTensor(1, 1, 1, 1)
-
-
-                  if not inputs then
-                     inputs = input
-                  else
-                     inputs = torch.cat(inputs, input, 1)
-                  end
-                  inputParamMap[inputs:size(1)] = {scale, offsetX, offsetY}
-               end
-            end
-            scale = scale + 1
-            floorplanNormalized = image.scale(floorplanNormalized, floorplanNormalized:size(3) / 2, floorplanNormalized:size(2) / 2)
-         end
-
-         inputs = inputs:cuda()
-
-         local outputs = torch.zeros(inputs:size(1), 51, sampleDim, sampleDim)
-         for batchOffset = 0, inputs:size(1) - 1, 4 do
-            local numInputs = math.min(inputs:size(1) - batchOffset, 4)
-            outputs[{{batchOffset + 1, batchOffset + numInputs}}]:copy(utils.modelHeatmap:forward(inputs[{{batchOffset + 1, batchOffset + numInputs}}]):double())
-         end
-
-
-         local scaleWeights = {}
-         for i = 0, 10 do
-            scaleWeights[i] = 1
-         end
-
-         local prediction = torch.zeros(51, height, width)
-         for i = 1, inputs:size(1) do
-            local inputParam = inputParamMap[i]
-            local scaleFactor = 2^inputParam[1]
-            local output = image.scale(outputs[i], outputs[i]:size(3) * scaleFactor, outputs[i]:size(2) * scaleFactor)
-
-
-            local offsetX = inputParam[2] * scaleFactor
-            local offsetY = inputParam[3] * scaleFactor
-            local outputWidth = math.min(width - offsetX, output:size(3))
-            local outputHeight = math.min(height - offsetY, output:size(2))
-            prediction:narrow(2, offsetY + 1, outputHeight):narrow(3, offsetX + 1, outputWidth):add(output:narrow(2, 1, outputHeight):narrow(3, 1, outputWidth) * scaleWeights[inputParam[1]])
-
-            image.save('test/output_' .. i .. '.png', prediction:narrow(1, 1, 13):sum(1)[1])
-         end
-         local scaleSum = 0
-
-         for i = 0, scale - 1 do
-            scaleSum = scaleSum + scaleWeights[i]
-         end
-
-         prediction:div(scaleSum)
-         output = prediction
-      end
-
-
-      if true then
-         output = image.scale(output:double(), width, height, 'bicubic')
-         local doorOffset = 13
-         local doorHeatmaps = torch.cat(torch.cat(torch.cat(output:narrow(1, doorOffset + 3, 1), output:narrow(1, doorOffset + 2, 1), 1), output:narrow(1, doorOffset + 4, 1), 1), output:narrow(1, doorOffset + 1, 1), 1)
-         local iconOffset = 17
-         local iconHeatmaps = torch.cat(torch.cat(torch.cat(output:narrow(1, iconOffset + 4, 1), output:narrow(1, iconOffset + 3, 1), 1), output:narrow(1, iconOffset + 1, 1), 1), output:narrow(1, iconOffset + 2, 1), 1)
-         return output:narrow(1, 1, 13):double(), doorHeatmaps, iconHeatmaps, output:narrow(1, 22, 30):double()
-      end
-
-      --local junctionHeatmaps = torch.zeros(nClasses, height, width)
-      --local junctionHeatmaps = output:narrow(1, 1, 13):double()
-      local confidenceMasks = output:narrow(1, 1, 13):double()
-      local junctionHeatmaps = fp_ut.extractWallPoints(confidenceMasks, nil, nil, nil, true)
-
-      --[[
-         for i = 1, 13 do
-         image.save('test/mask_' .. i .. '.png', confidenceMasks[i])
-         end
-         for i = 1, 13 do
-         image.save('test/heatmap_' .. i .. '.png', junctionHeatmaps[i])
-         end
-      ]]--
-
-      local confidenceMasks = output:narrow(1, 13 + 1, 4):double()
-      local heatmap_1, heatmap_2 = fp_ut.extractLinePoints(confidenceMasks[1], confidenceMasks[2], 1, nil, nil, nil, true)
-      local heatmap_3, heatmap_4 = fp_ut.extractLinePoints(confidenceMasks[3], confidenceMasks[4], 2, nil, nil, nil, true)
-      local doorHeatmaps = torch.cat(torch.cat(torch.cat(heatmap_3:repeatTensor(1, 1, 1), heatmap_2:repeatTensor(1, 1, 1), 1), heatmap_4:repeatTensor(1, 1, 1), 1), heatmap_1:repeatTensor(1, 1, 1), 1)
-
-
-      local confidenceMasks = output:narrow(1, 13 + 4 + 1, 4):double()
-      --[[
-         image.save('test/mask_1.png', confidenceMasks[4 * (number - 1) + 1])
-         image.save('test/mask_2.png', confidenceMasks[4 * (number - 1) + 2])
-         image.save('test/mask_3.png', confidenceMasks[4 * (number - 1) + 3])
-         image.save('test/mask_4.png', confidenceMasks[4 * (number - 1) + 4])
-      ]]--
-      local heatmap_1, heatmap_2, heatmap_3, heatmap_4 = fp_ut.extractRectanglePoints(confidenceMasks[1], confidenceMasks[2], confidenceMasks[3], confidenceMasks[4], numPoints, true)
-      local iconHeatmaps = torch.cat(torch.cat(torch.cat(heatmap_4:repeatTensor(1, 1, 1), heatmap_3:repeatTensor(1, 1, 1), 1), heatmap_1:repeatTensor(1, 1, 1), 1), heatmap_2:repeatTensor(1, 1, 1), 1)
-
-      local segmentations = output:narrow(1, 22, 30):double()
-
-
-      junctionHeatmaps = image.scale(junctionHeatmaps, width, height)
-      doorHeatmaps = image.scale(doorHeatmaps, width, height)
-      iconHeatmaps = image.scale(iconHeatmaps, width, height)
-
-      segmentations = image.scale(segmentations, width, height)
-      return junctionHeatmaps, doorHeatmaps, iconHeatmaps, segmentations
+   if not utils.modelHeatmap then
+      utils.modelHeatmap = torch.load(modelPath)
    end
+
+
+   local heatmapBranch = nn.Sequential():add(nn.MulConstant(0.1))
+   local segmentationBranch_1 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, sampleDim, sampleDim, 13)):add(nn.Transpose({3, 4}, {2, 3}))
+   local segmentationBranch_2 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, sampleDim, sampleDim, 17)):add(nn.Transpose({3, 4}, {2, 3}))
+   utils.modelHeatmap:add(nn.ParallelTable():add(heatmapBranch):add(segmentationBranch_1):add(segmentationBranch_2):cuda())
+   utils.modelHeatmap:add(nn.JoinTable(1, 3):cuda())
+   utils.modelHeatmap:evaluate()
+
+   
+   package.path = '../code/datasets/?.lua;' .. package.path
+   package.path = '../code/?.lua;' .. package.path
+   local dataset = require('floorplan-representation')
+   dataset.split = 'val'
+
+   local output
+   if scaleType == 'single' then
+      --local input = dataset:preprocessResize(sampleDim, sampleDim)(floorplan):repeatTensor(1, 1, 1, 1):cuda()
+      --output = utils.modelHeatmap:forward(input)[1]:double()
+
+
+      local floorplanScaled = dataset:preprocessScale(sampleDim)(floorplan)
+      --image.save('test/scale.png', floorplanScaled:double())
+      local offsetX, offsetY
+      if floorplanScaled:size(2) < sampleDim then
+	 offsetY = math.floor((sampleDim - floorplanScaled:size(2)) / 2)
+	 offsetX = 0
+      else
+	 offsetX = math.floor((sampleDim - floorplanScaled:size(3)) / 2)
+	 offsetY = 0
+      end
+      local temp = torch.zeros(3, sampleDim, sampleDim)
+      temp:narrow(2, offsetY + 1, floorplanScaled:size(2)):narrow(3, offsetX + 1, floorplanScaled:size(3)):copy(floorplanScaled)
+      local input = temp:repeatTensor(1, 1, 1, 1):cuda()
+
+      output = utils.modelHeatmap:forward(input)[1]:double()
+      output = image.crop(output, offsetX, offsetY, offsetX + floorplanScaled:size(3), offsetY + floorplanScaled:size(2))
+
+      --[[
+	 image.save('test/heatmaps/floorplan.png', dataset:postprocess()(input[1]))
+	 for i = 1, 13 do
+	 image.save('test/heatmaps/junction_heatmap_' .. i .. '.png', output[i])
+	 end
+	 os.exit(1)
+      ]]--
+   elseif scaleType == 'full' then
+      local floorplanNormalized = dataset:preprocessNormalization()(floorplan)
+   else
+      local floorplanNormalized = dataset:preprocessNormalization()(floorplan)
+
+      local inputParamMap = {}
+      local scale = 0
+      local inputs
+      while math.max(floorplanNormalized:size(3), floorplanNormalized:size(2)) > sampleDim / 2 or not inputs do
+	 for offsetX = 0, floorplanNormalized:size(3) - 1, sampleDim do
+	    for offsetY = 0, floorplanNormalized:size(2) - 1, sampleDim do
+	       local input = torch.zeros(3, sampleDim, sampleDim)
+	       local inputWidth = math.min(sampleDim, floorplanNormalized:size(3) - offsetX)
+	       local inputHeight = math.min(sampleDim, floorplanNormalized:size(2) - offsetY)
+
+	       input:narrow(2, 1, inputHeight):narrow(3, 1, inputWidth):copy(image.crop(floorplanNormalized, offsetX, offsetY, offsetX + inputWidth, offsetY + inputHeight))
+
+	       input = input:repeatTensor(1, 1, 1, 1)
+
+
+	       if not inputs then
+		  inputs = input
+	       else
+		  inputs = torch.cat(inputs, input, 1)
+	       end
+	       inputParamMap[inputs:size(1)] = {scale, offsetX, offsetY}
+	    end
+	 end
+	 scale = scale + 1
+	 floorplanNormalized = image.scale(floorplanNormalized, floorplanNormalized:size(3) / 2, floorplanNormalized:size(2) / 2)
+      end
+
+      inputs = inputs:cuda()
+
+      local outputs = torch.zeros(inputs:size(1), 51, sampleDim, sampleDim)
+      for batchOffset = 0, inputs:size(1) - 1, 4 do
+	 local numInputs = math.min(inputs:size(1) - batchOffset, 4)
+	 outputs[{{batchOffset + 1, batchOffset + numInputs}}]:copy(utils.modelHeatmap:forward(inputs[{{batchOffset + 1, batchOffset + numInputs}}]):double())
+      end
+
+
+      local scaleWeights = {}
+      for i = 0, 10 do
+	 scaleWeights[i] = 1
+      end
+
+      local prediction = torch.zeros(51, height, width)
+      for i = 1, inputs:size(1) do
+	 local inputParam = inputParamMap[i]
+	 local scaleFactor = 2^inputParam[1]
+	 local output = image.scale(outputs[i], outputs[i]:size(3) * scaleFactor, outputs[i]:size(2) * scaleFactor)
+
+
+	 local offsetX = inputParam[2] * scaleFactor
+	 local offsetY = inputParam[3] * scaleFactor
+	 local outputWidth = math.min(width - offsetX, output:size(3))
+	 local outputHeight = math.min(height - offsetY, output:size(2))
+	 prediction:narrow(2, offsetY + 1, outputHeight):narrow(3, offsetX + 1, outputWidth):add(output:narrow(2, 1, outputHeight):narrow(3, 1, outputWidth) * scaleWeights[inputParam[1]])
+
+	 image.save('test/output_' .. i .. '.png', prediction:narrow(1, 1, 13):sum(1)[1])
+      end
+      local scaleSum = 0
+
+      for i = 0, scale - 1 do
+	 scaleSum = scaleSum + scaleWeights[i]
+      end
+
+      prediction:div(scaleSum)
+      output = prediction
+   end
+
+
+   if true then
+      output = image.scale(output:double(), width, height, 'bicubic')
+      local doorOffset = 13
+      local doorHeatmaps = torch.cat(torch.cat(torch.cat(output:narrow(1, doorOffset + 3, 1), output:narrow(1, doorOffset + 2, 1), 1), output:narrow(1, doorOffset + 4, 1), 1), output:narrow(1, doorOffset + 1, 1), 1)
+      local iconOffset = 17
+      local iconHeatmaps = torch.cat(torch.cat(torch.cat(output:narrow(1, iconOffset + 4, 1), output:narrow(1, iconOffset + 3, 1), 1), output:narrow(1, iconOffset + 1, 1), 1), output:narrow(1, iconOffset + 2, 1), 1)
+      return output:narrow(1, 1, 13):double(), doorHeatmaps, iconHeatmaps, output:narrow(1, 22, 30):double()
+   end
+
+   --local junctionHeatmaps = torch.zeros(nClasses, height, width)
+   --local junctionHeatmaps = output:narrow(1, 1, 13):double()
+   local confidenceMasks = output:narrow(1, 1, 13):double()
+   local junctionHeatmaps = fp_ut.extractWallPoints(confidenceMasks, nil, nil, nil, true)
+
+   --[[
+      for i = 1, 13 do
+      image.save('test/mask_' .. i .. '.png', confidenceMasks[i])
+      end
+      for i = 1, 13 do
+      image.save('test/heatmap_' .. i .. '.png', junctionHeatmaps[i])
+      end
+   ]]--
+
+   local confidenceMasks = output:narrow(1, 13 + 1, 4):double()
+   local heatmap_1, heatmap_2 = fp_ut.extractLinePoints(confidenceMasks[1], confidenceMasks[2], 1, nil, nil, nil, true)
+   local heatmap_3, heatmap_4 = fp_ut.extractLinePoints(confidenceMasks[3], confidenceMasks[4], 2, nil, nil, nil, true)
+   local doorHeatmaps = torch.cat(torch.cat(torch.cat(heatmap_3:repeatTensor(1, 1, 1), heatmap_2:repeatTensor(1, 1, 1), 1), heatmap_4:repeatTensor(1, 1, 1), 1), heatmap_1:repeatTensor(1, 1, 1), 1)
+
+
+   local confidenceMasks = output:narrow(1, 13 + 4 + 1, 4):double()
+   --[[
+      image.save('test/mask_1.png', confidenceMasks[4 * (number - 1) + 1])
+      image.save('test/mask_2.png', confidenceMasks[4 * (number - 1) + 2])
+      image.save('test/mask_3.png', confidenceMasks[4 * (number - 1) + 3])
+      image.save('test/mask_4.png', confidenceMasks[4 * (number - 1) + 4])
+   ]]--
+   local heatmap_1, heatmap_2, heatmap_3, heatmap_4 = fp_ut.extractRectanglePoints(confidenceMasks[1], confidenceMasks[2], confidenceMasks[3], confidenceMasks[4], numPoints, true)
+   local iconHeatmaps = torch.cat(torch.cat(torch.cat(heatmap_4:repeatTensor(1, 1, 1), heatmap_3:repeatTensor(1, 1, 1), 1), heatmap_1:repeatTensor(1, 1, 1), 1), heatmap_2:repeatTensor(1, 1, 1), 1)
+
+   local segmentations = output:narrow(1, 22, 30):double()
+
+
+   junctionHeatmaps = image.scale(junctionHeatmaps, width, height)
+   doorHeatmaps = image.scale(doorHeatmaps, width, height)
+   iconHeatmaps = image.scale(iconHeatmaps, width, height)
+
+   segmentations = image.scale(segmentations, width, height)
+   return junctionHeatmaps, doorHeatmaps, iconHeatmaps, segmentations
 end
 
 function utils.proceduralGeneration(floorplan)

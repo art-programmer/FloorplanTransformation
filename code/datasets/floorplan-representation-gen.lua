@@ -15,8 +15,8 @@ local function findImages(opt, split)
    -- Generate a list of all the images and their class
    local maxLength = 0
    for k, v in pairs(photo_info) do
-      local floorplanFilename = v[1]
-      local representationFilename = v[2]
+      local floorplanFilename = opt.data .. '/' .. v[1]
+      local representationFilename = opt.data .. '/' .. v[2]
       
       local floorplanExists, floorplan = pcall(function()             
 	    return image.load(floorplanFilename, 3)
