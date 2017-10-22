@@ -1,7 +1,7 @@
 # Raster-to-Vector: Revisiting Floorplan Transformation
 By Chen Liu, Jiajun Wu, Pushmeet Kohli, and Yasutaka Furukawa
 
-### Introduction
+## Introduction
 
 This paper addresses the problem of converting a rasterized
 floorplan image into a vector-graphics representation.
@@ -10,15 +10,29 @@ existing methods and achieves around 90% precision and
 recall, getting to the range of production-ready performance. 
 To learn more, please see our ICCV 2017 [paper](https://www.cse.wustl.edu/~chenliu/floorplan-transformation/paper.pdf) or visit our [project website](https://www.cse.wustl.edu/~chenliu/floorplan-transformation.html).
 
-This code implements the algorithm described in our paper in C++.
+This code implements the algorithm described in our paper in Torch7.
 
-### Requirements
+## Requirements
 
-0. OpenCV
-1. PCL
-2. gflags
+..* Please install the latest Torch.
+..* Please install Python 2.7
 
-### Instruction
+### Torch packages
+- [nn](https://github.com/torch/nn)
+- [cudnn](https://github.com/soumith/cudnn.torch)
+- [image](https://github.com/torch/image)
+- [ffi](http://luajit.org/ext_ffi.html)
+- [csvigo](https://github.com/clementfarabet/lua---csv)
+- [penlight](https://github.com/stevedonovan/Penlight)
+- [opencv](https://github.com/marcoscoffier/lua---opencv)
+- [lunatic-python](https://labix.org/lunatic-python)
+
+### Python packages
+- [numpy](http://www.scipy.org/scipylib/download.html)
+- [Gurobi](http://www.gurobi.com)
+- [OpenCV](https://opencv.org/)
+
+## Instruction
 
 To compile the program:
 
