@@ -1,0 +1,881 @@
+require 'csvigo'
+require 'image'
+local pl = require 'pl.import_into' ()
+
+local utils = {}
+
+function utils.roomTypeMap()
+   local roomTypeMap = {}
+   roomTypeMap[1] = 'living_room'
+   roomTypeMap[2] = 'kitchen'
+   roomTypeMap[3] = 'bedroom'
+   roomTypeMap[4] = 'bathroom'
+   roomTypeMap[5] = 'restroom'
+   roomTypeMap[6] = 'balcony'
+   roomTypeMap[7] = 'closet'
+   roomTypeMap[8] = 'corridor'
+   roomTypeMap[9] = 'stairs'
+   roomTypeMap[10] = 'PS'
+   return roomTypeMap
+end
+
+function utils.keyMap()
+   local roomTypeMap = utils.roomTypeMap()   
+
+   local keyMap = {}
+   keyMap['b'] = {'icons', 'bathtub'}
+   keyMap['c'] = {'icons', 'cooking_counter'}
+   keyMap['t'] = {'icons', 'toilet'}
+   keyMap['s'] = {'icons', 'special'}
+   keyMap['e'] = {'icons', 'entrance'}
+   keyMap['w'] = {'icons', 'washing_basin'}
+   for i = 1, 10 do
+      keyMap[tostring(i % 10)] = {'labels', roomTypeMap[i]}
+   end
+   keyMap['a'] = {'walls', 'wall'}
+   keyMap['d'] = {'doors', 'door'}
+   return keyMap
+end
+
+function utils.classMap()
+   local classMap = {}
+   classMap.labels = {}
+   classMap.labels['living_room'] = 1
+   classMap.labels['kitchen'] = 2
+   classMap.labels['bedroom'] = 3
+   classMap.labels['bathroom'] = 4
+   classMap.labels['restroom'] = 5
+   classMap.labels['balcony'] = 6
+   classMap.labels['closet'] = 7
+   classMap.labels['corridor'] = 8
+   classMap.labels['stairs'] = 9
+   classMap.labels['PS'] = 10
+   
+   classMap.icons = {}
+   classMap.icons['bathtub'] = 1
+   classMap.icons['cooking_counter'] = 2
+   classMap.icons['toilet'] = 3
+   classMap.icons['entrance'] = 4
+   classMap.icons['washing_basin'] = 5
+   classMap.icons['special'] = 6
+   return classMap
+end
+
+function utils.modeMap()
+   local modeMap = {}
+   local keyMap = utils.keyMap()
+   for _, modeNamePair in pairs(keyMap) do
+      modeMap[modeNamePair[2]] = modeNamePair[1]
+   end
+   return modeMap
+end
+
+function utils.numItemsPerCell()
+   local numItemsPerCell = {}
+   numItemsPerCell.points = 2
+   numItemsPerCell.doors = 2
+   numItemsPerCell.icons = 2
+   numItemsPerCell.labels = 2
+   return numItemsPerCell
+end
+
+function utils.numFeaturesPerItem()
+   local numFeaturesPerItem = {}
+   numFeaturesPerItem.points = 5
+   numFeaturesPerItem.doors = 5
+   numFeaturesPerItem.icons = 5
+   numFeaturesPerItem.labels = 5
+   return numFeaturesPerItem
+end
+
+function utils.offsetsBB()
+   local numItemsPerCell = utils.numItemsPerCell()   
+   local numFeaturesPerItem = utils.numFeaturesPerItem()
+   local offsetsBB = {}
+   offsetsBB.points = 0
+   offsetsBB.doors = offsetsBB.points + numFeaturesPerItem.points * numItemsPerCell.points
+   offsetsBB.icons = offsetsBB.doors + numFeaturesPerItem.doors * numItemsPerCell.doors
+   offsetsBB.labels = offsetsBB.icons + numFeaturesPerItem.icons * numItemsPerCell.icons
+   return offsetsBB
+end
+
+function utils.numFeaturesBB()
+   local numItemsPerCell = utils.numItemsPerCell()
+   local offsetsBB = utils.offsetsBB()
+   local numFeaturesPerItem = utils.numFeaturesPerItem()
+   local numFeaturesBB = offsetsBB.labels + numFeaturesPerItem.labels * numItemsPerCell.labels
+   return numFeaturesBB
+end
+
+function utils.offsetsClass()
+   local numItemsPerCell = utils.numItemsPerCell()
+   local numFeaturesPerItem = utils.numFeaturesPerItem()
+   local numFeaturesBB = utils.numFeaturesBB()
+   local offsetsClass = {}
+   offsetsClass.points = numFeaturesBB
+   offsetsClass.doors = offsetsClass.points + numItemsPerCell.points
+   offsetsClass.icons = offsetsClass.doors + numItemsPerCell.doors
+   offsetsClass.labels = offsetsClass.icons + numItemsPerCell.icons
+   return offsetsClass
+end
+
+function utils.numFeaturesClass()
+   local numItemsPerCell = utils.numItemsPerCell()
+   local numFeaturesClass = numItemsPerCell.points + numItemsPerCell.doors + numItemsPerCell.icons + numItemsPerCell.labels
+   return numFeaturesClass
+end
+
+
+function utils.lineDim(line)
+   if math.abs(line[1][1] - line[2][1]) > math.abs(line[1][2] - line[2][2]) and math.abs(line[1][2] - line[2][2]) <= 1 then
+      return 1
+   elseif math.abs(line[1][2] - line[2][2]) > math.abs(line[1][1] - line[2][1]) and math.abs(line[1][1] - line[2][1]) <= 1 then
+      return 2
+   else
+      return 0
+   end
+end
+
+function utils.cutoffRange(range, max)
+   local lowerBound = math.max(range[1], 1)
+   local upperBound = math.min(range[2], max)
+   if lowerBound > upperBound then
+      return {}
+   else
+      return {lowerBound, upperBound}
+   end
+end
+
+function utils.drawLineMask(width, height, lines, lineDim, lineWidth)
+   local lineMask = torch.zeros(width, height)
+   local size = {width, height}
+   for _, line in pairs(lines) do
+      if utils.lineDim(line) == lineDim then
+         local fixedDim = 3 - lineDim
+         local fixedValue = (line[1][fixedDim] + line[2][fixedDim]) / 2
+         local fixedRange = utils.cutoffRange({fixedValue - lineWidth, fixedValue + lineWidth}, size[fixedDim])
+         if #fixedRange > 0 then
+            local lineRange = utils.cutoffRange({line[1][lineDim] - lineWidth, line[2][lineDim] + lineWidth}, size[lineDim])
+            if lineDim == 1 then
+               lineMask[{{lineRange[1], lineRange[2]}, {fixedRange[1], fixedRange[2]}}] = 1
+            else
+               lineMask[{{fixedRange[1], fixedRange[2]}, {lineRange[1], lineRange[2]}}] = 1
+            end
+         end
+      end
+   end
+end
+
+function utils.sortLines(lines)
+   for lineIndex, line in pairs(lines) do
+      local lineDim = utils.lineDim(line)
+      if lineDim > 0 and line[1][lineDim] > line[2][lineDim] then
+         local temp = lines[lineIndex][1][lineDim]
+         lines[lineIndex][1][lineDim] = lines[lineIndex][2][lineDim]
+         lines[lineIndex][2][lineDim] = temp
+      end
+   end
+   return lines
+end
+
+function utils.calcDistance(point_1, point_2)
+   return math.sqrt(math.pow(point_1[1] - point_2[1], 2) + math.pow(point_1[2] - point_2[2], 2))
+end
+
+function utils.findNearestEndPointPair(line_1, line_2, gap)
+   local nearestPair
+   local minDistance
+   for index_1 = 1, 2 do
+      for index_2 = 1, 2 do
+         local distance = utils.calcDistance(line_1[index_1], line_2[index_2])
+         if minDistance == nil or distance < minDistance then
+            nearestPair = {index_1, index_2}
+            minDistance = distance
+         end
+      end
+   end
+   if minDistance > gap then
+      local lineDim_1 = utils.lineDim(line_1)
+      local lineDim_2 = utils.lineDim(line_2)
+      local fixedValue_1 = (line_1[1][3 - lineDim_1] + line_1[2][3 - lineDim_1]) / 2        
+      local fixedValue_2 = (line_2[1][3 - lineDim_2] + line_2[2][3 - lineDim_2]) / 2
+      if lineDim_1 + lineDim_2 == 3 then
+         if line_2[1][lineDim_2] < fixedValue_1 and line_2[2][lineDim_2] > fixedValue_1 then
+            for index = 1, 2 do
+               local distance = math.abs(line_1[index][lineDim_1] - fixedValue_2)      
+               if distance < minDistance then          
+                  nearestPair = {index, 0}     
+                  minDistance = distance       
+               end
+            end
+         end
+         if line_1[1][lineDim_1] < fixedValue_2 and line_1[2][lineDim_1] > fixedValue_2 then
+            for index = 1, 2 do
+               local distance = math.abs(line_2[index][lineDim_2] - fixedValue_1)      
+               if distance < minDistance then          
+                  nearestPair = {0, index}
+                  minDistance = distance
+               end
+            end
+         end
+      end
+   end
+   if #line_1 >= 3 and line_1[3][2] == 2 and line_2[3][2] == 1 then
+      nearestPair[2] = 0   
+   end
+   if #line_2 >= 3 and line_2[3][2] == 2 and line_1[3][2] == 1 then   
+      nearestPair[1] = 0   
+   end
+   return nearestPair, minDistance
+end
+
+function utils.stitchLines(lines, gap)
+   for lineIndex_1, line_1 in pairs(lines) do
+      local lineDim_1 = utils.lineDim(line_1)
+      if lineDim_1 > 0 then
+	 local fixedValue_1 = (line_1[1][3 - lineDim_1] + line_1[2][3 - lineDim_1]) / 2
+	 for lineIndex_2, line_2 in pairs(lines) do
+	    if lineIndex_2 > lineIndex_1 then
+	       local lineDim_2 = utils.lineDim(line_2)
+	       if lineDim_2 > 0 then
+		  local fixedValue_2 = (line_2[1][3 - lineDim_2] + line_2[2][3 - lineDim_2]) / 2
+		  local nearestPair, minDistance = utils.findNearestEndPointPair(line_1, line_2, gap)
+		  --print(minDistance .. ' ' .. lineDim_1 .. ' ' .. lineDim_2)
+		  if minDistance <= gap and lineDim_1 + lineDim_2 == 3 then
+		     local pointIndex_1 = nearestPair[1]
+		     local pointIndex_2 = nearestPair[2]
+		     --print(lineIndex_1 .. ' ' .. lineIndex_2)
+		     if pointIndex_1 > 0 and pointIndex_2 > 0 then
+			lines[lineIndex_1][pointIndex_1][lineDim_1] = fixedValue_2
+			lines[lineIndex_2][pointIndex_2][lineDim_2] = fixedValue_1
+		     elseif pointIndex_1 > 0 and pointIndex_2 == 0 then
+			lines[lineIndex_1][pointIndex_1][lineDim_1] = fixedValue_2
+		     elseif pointIndex_1 == 0 and pointIndex_2 > 0 then
+			lines[lineIndex_2][pointIndex_2][lineDim_2] = fixedValue_1
+		     end
+		  end
+	       end
+	    end
+	 end
+      end
+   end
+   return lines
+end
+
+function utils.gridPoint(width, height, gridWidth, gridHeight, point)
+   local cellWidth = width / gridWidth   
+   local cellHeight = height / gridHeight   
+   local gridX = math.floor((point[1] - 1) / cellWidth) + 1   
+   local gridY = math.floor((point[2] - 1) / cellHeight) + 1
+   local cellX = ((point[1] - 1) - (gridX - 1) * cellWidth) / (cellWidth - 1)
+   local cellY = ((point[2] - 1) - (gridY - 1) * cellHeight) / (cellHeight - 1)
+   return {{gridX, gridY}, {cellX, cellY}}
+end
+
+function utils.gridRectangle(width, height, gridWidth, gridHeight, point_1, point_2)
+   if point_2 == nil then
+      local rectangle = utils.gridPoint(width, height, gridWidth, gridHeight, point_1)
+      table.insert(rectangle, {0, 0})
+      return rectangle
+   end
+   local center = utils.gridPoint(width, height, gridWidth, gridHeight, {(point_1[1] + point_2[1]) / 2, (point_1[2] + point_2[2]) / 2})
+   local rectangle = center
+   table.insert(rectangle, {(point_2[1] - point_1[1] + 1) / width, (point_2[2] - point_1[2] + 1) / height})
+   return rectangle
+end
+
+function utils.imageRectangle(width, height, gridWidth, gridHeight, rectangle)
+   local cellWidth = width / gridWidth   
+   local cellHeight = height / gridHeight   
+   local centerX = (rectangle[1][1] - 1) * cellWidth + rectangle[2][1] * (cellWidth - 1) + 1
+   local centerY = (rectangle[1][2] - 1) * cellHeight + rectangle[2][2] * (cellHeight - 1) + 1
+   return {{centerX - (rectangle[3][1] * width - 1) / 2, centerY - (rectangle[3][2] * height - 1) / 2}, {centerX + (rectangle[3][1] * width - 1) / 2, centerY + (rectangle[3][2] * height - 1) / 2}}
+end
+
+function utils.convertRepresentation(width, height, representationGeneral, representationType, gap)
+   local representation = {}
+   if representationType == 'P' then
+      local points = {}
+      local usedLinePointMask = {}      
+      for lineIndex, line in pairs(representationGeneral.walls) do      
+         usedLinePointMask[lineIndex] = {false, false}                  
+      end
+      
+      for lineIndex_1, line_1 in pairs(representationGeneral.walls) do
+         local lineDim_1 = utils.lineDim(line_1)
+	 if lineDim_1 > 0 then
+	    local fixedValue_1 = (line_1[1][3 - lineDim_1] + line_1[2][3 - lineDim_1]) / 2
+	    for lineIndex_2, line_2 in pairs(representationGeneral.walls) do
+	       if lineIndex_2 > lineIndex_1 then
+		  local lineDim_2 = utils.lineDim(line_2)
+		  if lineDim_2 > 0 then
+		     local fixedValue_2 = (line_2[1][3 - lineDim_2] + line_2[2][3 - lineDim_2]) / 2
+		     local nearestPair, minDistance = utils.findNearestEndPointPair(line_1, line_2, gap)
+		     
+		     if minDistance <= gap and lineDim_1 + lineDim_2 == 3 then
+			local pointIndex_1 = nearestPair[1]
+			local pointIndex_2 = nearestPair[2]
+			if pointIndex_1 > 0 and pointIndex_2 > 0 then
+			   local point = {}                
+			   point[lineDim_1] = fixedValue_2                 
+			   point[lineDim_2] = fixedValue_1
+			   local side = {}
+			   side[lineDim_1] = line_1[3 - pointIndex_1][lineDim_1] - fixedValue_2
+			   side[lineDim_2] = line_2[3 - pointIndex_2][lineDim_2] - fixedValue_1
+			   if side[1] < 0 and side[2] < 0 then                             
+			      table.insert(points, {point, {'point', 2, 1}})
+			   elseif side[1] > 0 and side[2] < 0 then                                                    
+			      table.insert(points, {point, {'point', 2, 2}})
+			   elseif side[1] > 0 and side[2] > 0 then                                                                    
+			      table.insert(points, {point, {'point', 2, 3}})
+			   elseif side[1] < 0 and side[2] > 0 then                                                                    
+			      table.insert(points, {point, {'point', 2, 4}})
+			   end
+			   usedLinePointMask[lineIndex_1][pointIndex_1] = true
+			   usedLinePointMask[lineIndex_2][pointIndex_2] = true
+			elseif (pointIndex_1 > 0 and pointIndex_2 == 0) or (pointIndex_1 == 0 and pointIndex_2 > 0) then
+			   local lineDim
+			   local pointIndex
+			   local fixedValue
+			   local pointValue
+			   if pointIndex_1 > 0 then
+			      lineDim = lineDim_1
+			      pointIndex = pointIndex_1
+			      fixedValue = fixedValue_2
+			      pointValue = line_1[pointIndex_1][3 - lineDim_1]
+			      usedLinePointMask[lineIndex_1][pointIndex_1] = true
+			   else
+			      lineDim = lineDim_2
+			      pointIndex = pointIndex_2
+			      fixedValue = fixedValue_1
+			      pointValue = line_2[pointIndex_2][3 - lineDim_2]
+			      usedLinePointMask[lineIndex_2][pointIndex_2] = true
+			   end
+			   local point = {}
+			   point[lineDim] = fixedValue
+			   point[3 - lineDim] = pointValue
+			   
+			   if pointIndex == 1 then                 
+			      if lineDim == 1 then                                 
+				 table.insert(points, {point, {'point', 3, 4}})                     
+			      else                                         
+				 table.insert(points, {point, {'point', 3, 1}})                                     
+			      end                  
+			   else                    
+			      if lineDim == 1 then                                 
+				 table.insert(points, {point, {'point', 3, 2}})                     
+			      else                                         
+				 table.insert(points, {point, {'point', 3, 3}})
+			      end
+			   end
+			elseif line_1[1][lineDim_1] < fixedValue_2 and line_1[2][lineDim_1] > fixedValue_2 and line_2[1][lineDim_2] < fixedValue_1 and line_2[2][lineDim_2] > fixedValue_1 then
+			   local point = {}
+			   point[lineDim_1] = fixedValue_2
+			   point[lineDim_2] = fixedValue_1
+			   table.insert(points, {point, {'point', 4, 1}})
+			end
+			--print(lineIndex_1 .. '\t' .. lineIndex_2)
+			--print(nearestPair[1] .. '\t' .. nearestPair[2] .. '\t' .. minDistance)
+			--local point = points[#points]
+			--print(#points .. '\t' .. point[1][1] .. '\t' .. point[1][2] .. '\t' .. point[2][2])
+		     end
+		  end
+	       end
+	    end
+	 end
+      end
+      --for _, point in pairs(points) do
+      --print(point[1][1] .. '\t' .. point[1][2] .. '\t' .. point[2][2])
+      --end
+      --os.exit(1)
+      for lineIndex, pointMask in pairs(usedLinePointMask) do
+         local lineDim = utils.lineDim(representationGeneral.walls[lineIndex])
+         for pointIndex = 1, 2 do
+            if pointMask[pointIndex] == false then
+               local point = {representationGeneral.walls[lineIndex][pointIndex][1], representationGeneral.walls[lineIndex][pointIndex][2]}
+               if pointIndex == 1 then               
+                  if lineDim == 1 then                                       
+                     table.insert(points, {point, {'point', 1, 4}})                   
+                  else                                       
+                     table.insert(points, {point, {'point', 1, 1}})                                   
+                  end                
+               else                  
+                  if lineDim == 1 then                                       
+                     table.insert(points, {point, {'point', 1, 2}})                   
+                  else                                       
+                     table.insert(points, {point, {'point', 1, 3}})                                   
+                  end                
+               end
+            end
+         end
+      end
+      
+      representation.points = points
+      representation.doors = representationGeneral.doors              
+      representation.icons = representationGeneral.icons
+      representation.labels = representationGeneral.labels
+   end
+   --[[
+   print('from')
+   for mode, items in pairs(representationGeneral) do   
+      print(mode .. '\t' .. #items)   
+   end
+   print('to')
+   for mode, items in pairs(representation) do   
+      print(mode .. '\t' .. #items)   
+      end
+   ]]--
+   return representation
+end
+
+function utils.convertRepresentationToTensor(width, height, gridWidth, gridHeight, representationGlobal)
+
+   local representation = {}
+   representation.points = {}
+   for _, point in pairs(representationGlobal.points) do
+      local newPoint = utils.gridRectangle(width, height, gridWidth, gridHeight, point[1])
+      table.insert(newPoint, point[2])
+      if newPoint[1][1] >= 1 and newPoint[1][1] <= gridWidth and newPoint[1][2] >= 1 and newPoint[1][2] <= gridHeight then
+         table.insert(representation.points, newPoint)
+      end
+   end
+   
+   representation.doors = {}
+   for _, door in pairs(representationGlobal.doors) do
+      local newRectangle = utils.gridRectangle(width, height, gridWidth, gridHeight, door[1], door[2])
+      table.insert(newRectangle, door[3])
+      if newRectangle[1][1] >= 1 and newRectangle[1][1] <= gridWidth and newRectangle[1][2] >= 1 and newRectangle[1][2] <= gridHeight then
+         table.insert(representation.doors, newRectangle)
+      end
+   end
+   
+   representation.icons = {}       
+   for _, icon in pairs(representationGlobal.icons) do    
+      local newRectangle = utils.gridRectangle(width, height, gridWidth, gridHeight, icon[1], icon[2])
+      table.insert(newRectangle, icon[3])
+      if newRectangle[1][1] >= 1 and newRectangle[1][1] <= gridWidth and newRectangle[1][2] >= 1 and newRectangle[1][2] <= gridHeight then
+         table.insert(representation.icons, newRectangle)
+      end
+   end
+   
+   representation.labels = {}       
+   for _, label in pairs(representationGlobal.labels) do    
+      local newPoint = utils.gridRectangle(width, height, gridWidth, gridHeight, label[1], label[2])
+      --table.remove(newPoint)
+      table.insert(newPoint, label[3])
+      if newPoint[1][1] >= 1 and newPoint[1][1] <= gridWidth and newPoint[1][2] >= 1 and newPoint[1][2] <= gridHeight then
+         table.insert(representation.labels, newPoint)
+      end
+   end
+
+   local offsetsBB = utils.offsetsBB()   
+   local offsetsClass = utils.offsetsClass()
+   local numFeaturesBB = utils.numFeaturesBB()
+   local numFeaturesClass = utils.numFeaturesClass()
+   local classMap = utils.classMap()   
+   local numItemsPerCell = utils.numItemsPerCell()
+   local numFeaturesPerItem = utils.numFeaturesPerItem()
+
+   local representationTensor = torch.zeros(numFeaturesBB + numFeaturesClass, gridHeight, gridWidth)
+   local gridItems = {}
+   for y = 1, gridHeight do
+      gridItems[y] = {}   
+      for x = 1, gridWidth do
+         gridItems[y][x] = {}
+         for mode, offset in pairs(offsetsBB) do
+            gridItems[y][x][mode] = {}
+         end
+      end
+   end
+   for mode, items in pairs(representation) do
+      for __, item in pairs(items) do
+         --if gridItems[item[1][2]][item[1][1]][mode] ~= nil then
+         table.insert(gridItems[item[1][2]][item[1][1]][mode], item)
+         --end
+      end
+   end
+
+   for x = 1, gridWidth do   
+      for y = 1, gridHeight do
+         for mode, items in pairs(gridItems[y][x]) do
+            local numFeatures = numFeaturesPerItem[mode]
+            local sortedItems = {}
+            for _, item in pairs(items) do
+               table.insert(sortedItems, {item[2][1] + item[2][2], item})
+            end
+            table.sort(sortedItems, function(a, b) return a[1] < b[1] end)
+            for i = numItemsPerCell[mode] + 1, #sortedItems do
+               table.remove(sortedItems)
+            end
+            
+            local offsetBB = offsetsBB[mode]
+            for itemIndex, item in pairs(sortedItems) do
+               item = item[2]
+               local itemTensor = representationTensor[{{offsetBB + (itemIndex - 1) * numFeatures + 1, offsetBB + (itemIndex - 1) * numFeatures + numFeatures}, y, x}]
+               itemTensor[1] = item[2][1]                                         
+               itemTensor[2] = item[2][2]                         
+               itemTensor[3] = item[3][1]                                         
+               itemTensor[4] = item[3][2]
+               itemTensor[5] = 1
+            end
+            local offsetClass = offsetsClass[mode]
+            for itemIndex, item in pairs(sortedItems) do
+               item = item[2]
+               local class
+               if mode == 'points' then     
+                  class = (item[4][2] - 1) * 4 + item[4][3]
+               elseif mode == 'doors' then
+                  class = item[4][2]
+               elseif mode == 'icons' then                          
+                  class = classMap[mode][item[4][1]]       
+               elseif mode == 'labels' then                         
+                  class = classMap[mode][item[4][1]]
+               end
+	       --print(mode)
+	       --print(item[4][1])
+	       --print(class)
+	       representationTensor[{offsetClass + itemIndex, y, x}] = class
+            end
+         end
+      end
+   end
+   return representationTensor
+end
+
+function utils.convertTensorToRepresentation(width, height, representationTensor, confidenceThreshold)
+   local offsetsBB = utils.offsetsBB()      
+   local offsetsClass = utils.offsetsClass()   
+   local numItemsPerCell = utils.numItemsPerCell()   
+   local numFeaturesPerItem = utils.numFeaturesPerItem()
+   
+   local representation = {}
+   representation.points = {}
+   representation.doors = {}
+   representation.icons = {}
+   representation.labels = {}
+   
+   local gridWidth = representationTensor:size(3)
+   local gridHeight = representationTensor:size(2)
+   local confidenceThreshold = confidenceThreshold or 0.5
+
+   for x = 1, gridWidth do   
+      for y = 1, gridHeight do
+         for mode, numItems in pairs(numItemsPerCell) do
+            local offsetBB = offsetsBB[mode]
+            local offsetClass = offsetsClass[mode]
+            local numFeatures = numFeaturesPerItem[mode]
+            for itemIndex = 1, numItems do
+               local item = representationTensor[{{offsetBB + (itemIndex - 1) * numFeatures + 1, offsetBB + (itemIndex - 1) * numFeatures + numFeatures}, y, x}]
+               local class = representationTensor[{offsetClass + itemIndex, y, x}]
+               --if torch.max(item) > 0 then
+               --print(mode)
+               --print(item)
+               --end
+               
+               if item[5] > confidenceThreshold then
+                  if mode == 'points' then
+                     table.insert(representation[mode], {{x, y}, {item[1], item[2]}, {item[3], item[4]}, {'point', math.floor((class - 1) / 4) + 1, (class - 1) % 4 + 1}})
+                  elseif mode == 'doors' then
+                     table.insert(representation[mode], {{x, y}, {item[1], item[2]}, {item[3], item[4]}, {'door', 1, 1}})
+                  elseif mode == 'icons' then
+                     table.insert(representation[mode], {{x, y}, {item[1], item[2]}, {item[3], item[4]}, {'icon', 1, 1}})
+                  elseif mode == 'labels' then
+                     table.insert(representation[mode], {{x, y}, {item[1], item[2]}, {item[3], item[4]}, {'label', 1, 1}})
+                  end
+               end
+            end
+         end
+      end
+   end
+   
+   return representation
+end
+
+function utils.cropRepresentation(representation, startX, startY, endX, endY)
+   local newRepresentation = {}
+   for mode, items in pairs(representation) do
+      newRepresentation[mode] = {}
+      for _, item in pairs(items) do
+         if (item[1][1] + item[2][1]) / 2 <= endX and (item[1][2] + item[2][2]) / 2 <= endY then
+            for pointIndex = 1, 2 do
+               item[pointIndex][1] = item[pointIndex][1] - startX
+               item[pointIndex][2] = item[pointIndex][2] - startY
+            end
+            --[[
+               print(mode)
+               for i = 1, 3 do
+               print(item[i][1] .. ' ' .. item[i][2])
+               end
+            ]]--
+            table.insert(newRepresentation[mode], item)
+         end
+      end
+   end
+   return newRepresentation
+end
+
+function utils.scaleRepresentation(representation, width, height, newWidth, newHeight)
+   local newRepresentation = {}
+   for mode, items in pairs(representation) do
+      newRepresentation[mode] = {}
+      for _, item in pairs(items) do
+         for pointIndex = 1, 2 do
+            item[pointIndex][1] = torch.round((item[pointIndex][1] - 1) / (width - 1) * (newWidth - 1) + 1)
+            item[pointIndex][2] = torch.round((item[pointIndex][2] - 1) / (height - 1) * (newHeight - 1) + 1)
+         end
+         table.insert(newRepresentation[mode], item)
+      end
+   end
+   return newRepresentation
+end
+
+function utils.rotateRepresentation(representation, width, height, orientation)
+   if orientation == 1 then      
+      return representation
+   end
+   
+   local newRepresentation = {}
+   for mode, items in pairs(representation) do   
+      newRepresentation[mode] = {}
+      for _, item in pairs(items) do
+         for pointIndex = 1, 2 do
+            local x = item[pointIndex][1]              
+            local y = item[pointIndex][2]
+            if orientation == 2 then
+               item[pointIndex][1] = height - y                
+               item[pointIndex][2] = x
+            elseif orientation == 3 then
+               item[pointIndex][1] = width - x                                 
+               item[pointIndex][2] = height - y
+            else
+               item[pointIndex][1] = y                                 
+               item[pointIndex][2] = width - x
+            end
+         end
+         table.insert(newRepresentation[mode], item)
+      end
+   end
+   newRepresentation.walls = utils.sortLines(newRepresentation.walls)
+   newRepresentation.doors = utils.sortLines(newRepresentation.doors)
+   return newRepresentation
+end
+
+function utils.drawRepresentationImage(width, height, gridWidth, gridHeight, floorplan, representation, representationType, renderingType, lineWidth)
+   representationType = representationType or 'P'
+   renderingType = renderingType or 'P'
+   if representationType == 'P' and renderingType == 'P' then
+      local colorMap = {}
+      colorMap[1] = {255, 0, 0}   
+      colorMap[2] = {0, 255, 0}   
+      colorMap[3] = {0, 0, 255}
+      colorMap[4] = {255, 255, 0}      
+      colorMap[5] = {0, 255, 255}      
+      colorMap[6] = {255, 0, 255}
+      colorMap[7] = {128, 0, 0}
+      colorMap[8] = {0, 128, 0}      
+      colorMap[9] = {0, 0, 128}
+      local representationImage = floorplan
+      for mode, items in pairs(representation) do
+	 if mode == 'points' or mode == 'doors' or mode == 'icons' or mode == 'labels' then   
+	    for __, item in pairs(items) do   
+	       local rectangle = utils.imageRectangle(width, height, gridWidth, gridHeight, item)   
+	       local center = {(rectangle[2][1] + rectangle[1][1]) / 2, (rectangle[2][2] + rectangle[1][2]) / 2}   
+	       local rectangleWidth = math.max(rectangle[2][1] - rectangle[1][1] + 1, 10)   
+	       local rectangleHeight = math.max(rectangle[2][2] - rectangle[1][2] + 1, 10)   
+	       local color = colorMap[item[4][2]]   
+	       
+	       lineWidth = 2   
+	       if mode == 'points' then   
+		  lineWidth = 10   
+	       end
+	       --[[
+		  print(mode)
+		  print(width .. ' ' .. height)
+		  print(center[1] .. ' ' .. center[2])
+		  print(rectangleWidth .. ' ' .. rectangleHeight)
+		  print(#representationImage)
+		  print(math.max(center[1] - rectangleWidth / 2, 1) .. ' ' .. math.max(center[2] - rectangleHeight / 2, 1) .. ' ' .. math.min(center[1] + rectangleWidth / 2, width) .. ' ' .. math.min(center[2] + rectangleHeight / 2, height))
+	       ]]--
+	       
+	       --representationImage = image.drawRect(representationImage, math.max(center[1] - rectangleWidth / 2, 1), math.max(center[2] - rectangleHeight / 2, 1), math.min(center[1] + rectangleWidth / 2, width), math.min(center[2] + rectangleHeight / 2, height), {lineWidth = lineWidth, color = color})   
+	       success, newRepresentationImage = pcall(function() return image.drawRect(representationImage, math.max(center[1] - rectangleWidth / 2, 1), math.max(center[2] - rectangleHeight / 2, 1), math.min(center[1] + rectangleWidth / 2, width), math.min(center[2] + rectangleHeight / 2, height), {lineWidth = lineWidth, color = color}) end)
+	       if success then
+		  representationImage = newRepresentationImage
+	       else
+		  --[[
+		     print('Fail to draw rectangle')
+		     print(#representationImage)
+		     print(center[1] .. '\t' .. center[2] .. '\t' .. rectangleWidth .. '\t' .. rectangleHeight .. '\t' .. lineWidth)
+		  ]]--
+	       end
+	    end   
+	 end   
+      end
+      return representationImage
+   elseif representationType == 'P' and renderingType == 'L' then
+      local representationImage = torch.ones(#floorplan)
+
+      local usedPointLineMask = {}
+      local pointOrientations = {}
+      for pointIndex, point in pairs(representation.points) do
+         usedPointLineMask[pointIndex] = {true, true, true, true}
+	 
+         local orientations = {}
+         local orientation = point[3][3]
+         if point[3][2] == 1 then
+            table.insert(orientations, (orientation + 2 - 1) % 4 + 1)
+         elseif point[3][2] == 2 then       
+            table.insert(orientations, orientation)                 
+            table.insert(orientations, (orientation + 3 - 1) % 4 + 1)
+         elseif point[3][2] == 3 then
+            for i = 1, 4 do         
+               if i ~= orientation then     
+                  table.insert(orientations, i)                             
+               end          
+            end
+         else
+            for i = 1, 4 do         
+               table.insert(orientations, i)                             
+            end
+	 end
+	 pointOrientations[pointIndex] = orientations
+	 for _, orientation in pairs(orientations) do
+	    usedPointLineMask[orientation] = false
+	 end
+      end
+      
+
+      for pointIndex, point in pairs(representation.points) do
+         local orientations = pointOrientations[pointIndex]
+	 
+	 local x = point[1][1]
+	 local y = point[1][2]
+         for _, orientation in pairs(orientations) do
+	    if usedPointLineMask[pointIndex][orientation] == false then
+	       local min_x, max_x, min_y, max_y
+	       if orientation == 1 or orientation == 3 then
+		  min_x = x - lineWidth           
+                  max_x = x - lineWidth           
+                  if orientation = 1 then                 
+                     min_y = 1                            
+                     max_y = y            
+                  else            
+                     min_y = y                            
+                     max_y = height               
+                  end
+	       else
+		  min_y = y - lineWidth           
+                  max_y = y - lineWidth           
+                  if orientation = 2 then
+                     min_x = x
+                     max_x = width
+                  else            
+                     min_x = 1
+                     max_x = x
+                  end
+	       end
+	       local orientationOpposite = (orientation + 2 - 1) % 4 + 1
+	       for otherPointIndex, otherPoint in pairs(representation.points) do
+		  if otherPointIndex ~= pointIndex and usedPointLineMask[otherPoint][orientationOpposite] == false then
+		     
+		     
+		  
+	       for mode, items in pairs(representation) do
+	    if mode == 'points' or mode == 'doors' or mode == 'icons' or mode == 'labels' then   
+            for __, item in pairs(items) do   
+               local rectangle = utils.imageRectangle(width, height, gridWidth, gridHeight, item)   
+               local center = {(rectangle[2][1] + rectangle[1][1]) / 2, (rectangle[2][2] + rectangle[1][2]) / 2}   
+               local rectangleWidth = math.max(rectangle[2][1] - rectangle[1][1] + 1, 10)   
+               local rectangleHeight = math.max(rectangle[2][2] - rectangle[1][2] + 1, 10)   
+               local color = colorMap[item[4][2]]   
+               
+               lineWidth = 2   
+               if mode == 'points' then   
+                  lineWidth = 10   
+               end
+	       
+               success, newRepresentationImage = pcall(function() return image.drawRect(representationImage, math.max(center[1] - rectangleWidth / 2, 1), math.max(center[2] - rectangleHeight / 2, 1), math.min(center[1] + rectangleWidth / 2, width), math.min(center[2] + rectangleHeight / 2, height), {lineWidth = lineWidth, color = color}) end)
+               if success then
+                  representationImage = newRepresentationImage
+               else
+                  --[[
+                     print('Fail to draw rectangle')
+                     print(#representationImage)
+                     print(center[1] .. '\t' .. center[2] .. '\t' .. rectangleWidth .. '\t' .. rectangleHeight .. '\t' .. lineWidth)
+                  ]]--
+               end
+            end   
+         end   
+      end
+      return representationImage      
+   end
+end
+
+
+function utils.loadRepresentation(filename)
+   local representationExists, representationInfo = pcall(function()   
+         return csvigo.load({path=filename, mode="large", header=false, separator='\t', verbose=false})   
+   end)
+   if representationExists and representationInfo ~= nil then
+      local representation = {}
+      representation.walls = {}
+      representation.doors = {}      
+      representation.icons = {}      
+      representation.labels = {}
+      local modeMap = utils.modeMap()
+      for _, item in pairs(representationInfo) do
+         local itemMode = modeMap[item[5]]
+         local itemInfo = {{tonumber(item[1]), tonumber(item[2])}, {tonumber(item[3]), tonumber(item[4])}, {item[5], tonumber(item[6]), tonumber(item[7])}}
+         table.insert(representation[itemMode], itemInfo)
+      end
+      return representation   
+   else
+      return nil
+   end
+end
+
+function utils.finalizeRepresentation(representation)
+   representation.walls = utils.stitchLines(utils.sortLines(representation.walls), 5)         
+   representation.doors = utils.sortLines(representation.doors)
+   return representation
+end
+
+function utils.saveRepresentation(filename, representation)
+   --local representationExists, representationFile = pcall(function()      
+   --return io.open(filename, 'r')
+   --end)
+   --local override = false
+   --if representationExists then      
+   --end
+   print('save representation')
+   
+   representation = utils.finalizeRepresentation(representation)
+   
+   pl.dir.makepath(filename:match('(.+)/(.+)'))
+   local representationFile = io.open(filename, 'w')
+   for itemMode, items in pairs(representation) do
+      for _, item in pairs(items) do
+         for __, field in pairs(item) do
+            if __ <= 3 then
+               for ___, value in pairs(field) do
+                  representationFile:write(value .. '\t')
+               end
+            end
+         end
+         representationFile:write('\n')
+      end
+   end
+   
+   representationFile:close()
+end
+
+--[[
+   lines = {}
+   table.insert(lines, {{1, 1}, {1, 10}})
+   table.insert(lines, {{1, 11}, {20, 11}})
+   print(lines)
+   print(stitchLines(lines, 5))
+]]--
+
+
+return utils
