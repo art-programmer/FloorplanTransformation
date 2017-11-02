@@ -35,7 +35,7 @@ for _, mode in pairs({'Wall Junction', 'Door', 'Object', 'Room'}) do
 end
 
 
-local filenames = {}
+local resultFilenames = {}
 
 --local finalExamples = {1, 2, 4, 5, 6}
 --for _, i in pairs(finalExamples) do
@@ -63,22 +63,15 @@ for index, filenames in pairs(imageInfo) do
    end
 
    local representationImage = fp_ut.drawRepresentationImage(floorplan, representationPrediction)
-   --image.save(resultPath .. predictionFilename, representationImage)
    local img = torch.cat(floorplan, representationImage, 3)
    local floorplanPredictionFilename = 'representation_prediction_' .. index .. '.png'
-   local predictionFilename = resultPath .. floorplanPredictionFilename
-   image.save(predictionFilename, img)   
-   table.insert(filenames, predictionFilename)
-
-   if index == 10 then
-      break
-   end
+   image.save(resultPath .. '/' .. floorplanPredictionFilename, img)   
+   table.insert(resultFilenames, floorplanPredictionFilename)
 end
 
 print(results)
 
-
-local resultFile = io.open(resultPath .. 'index.html', 'w')
+local resultFile = io.open(resultPath .. '/index.html', 'w')
 resultFile:write("<!DOCTYPE html><html><head></head><body>")
 resultFile:write("<h3>Statistics:</h3>")
 resultFile:write('<table border="1">')
@@ -89,7 +82,7 @@ end
 resultFile:write("</table>")
 
 resultFile:write("<h3>Results:</h3>")
-for i, filename in pairs(filenames) do
+for i, filename in pairs(resultFilenames) do
    resultFile:write("<p>Index " .. i .. "</p>")
    resultFile:write('<img src="' .. filename .. '" alt="' .. filename .. '" width="100%">')
 end
