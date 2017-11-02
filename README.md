@@ -59,13 +59,21 @@ Here are som useful options for the main script:
 - -nEpochs  specifies the number of epochs
 - -checkpointEpochInterval  specifies the number of training epochs between two checkpoints (useful if you want to save less number of checkpoints instead of saving one checkpoint for every epoch)
 - useCheckpoint specifies how the training resumes
- * -1: starting from the beginning even when checkpoints previously trained are found
- * 0 (default) resuming from checkpoints if found
- * n (n > 0) resuming from the nth checkpoint
+  * -1: starting from the beginning even when checkpoints previously trained are found
+  * 0 (default) resuming from checkpoints if found
+  * n (n > 0) resuming from the nth checkpoint
+
+
+To make prediction on a floorplan image, run
+```bash
+th predict.lua -floorplanFilename "path to the floorplan image" -outputFilename "output filename"
+```
+Note that this script will produce the vectorization result (saved in ".txt" file) as well as the rendering image (saved in ".png" file).
+
 
 To evaluate performance on the benchmark, run
 ```bash
-th evaluate.lua
+th evaluate.lua -loadModel "model path" -resultPath "path to save results"
 ```
 
 ## Contact
