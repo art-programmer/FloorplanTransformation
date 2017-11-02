@@ -1,7 +1,7 @@
 local optim = require 'optim'
 local image = require 'image'
-local display = require 'display'
-display.configure({hostname='127.0.0.1', port=8000})
+--local display = require 'display'
+--display.configure({hostname='127.0.0.1', port=8000})
 
 local M = {}
 local Trainer = torch.class('matching.Trainer', M)

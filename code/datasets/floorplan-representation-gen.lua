@@ -14,7 +14,11 @@ local function findImages(opt, split)
    
    -- Generate a list of all the images and their class
    local maxLength = 0
-   for k, v in pairs(photo_info) do
+   for k, v in pairs(imageInfo) do
+      if k % 100 == 0 then
+	 print(k .. ' images loaded')
+      end
+	 
       local floorplanFilename = opt.data .. '/' .. v[1]
       local representationFilename = opt.data .. '/' .. v[2]
       
@@ -28,7 +32,7 @@ local function findImages(opt, split)
       table.insert(floorplanPaths, floorplanFilename)
       maxLength = math.max(maxLength, #representationFilename + 1)
       
-      xlua.progress(#representationPaths, maxImgs)
+      --xlua.progress(#representationPaths)
    end
    
    local nImages = #representationPaths
