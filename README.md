@@ -53,12 +53,15 @@ To load our trained model and resume training, please run
 th main.lua -loadModel  "path to the downloaded pretrained model"
 ```
 
-Here are som useful options for the main.lua:
+Here are som useful options for the main script:
 - -batchSize  specifies the batch size
 - -LR specifies the learning rate
 - -nEpochs  specifies the number of epochs
 - -checkpointEpochInterval  specifies the number of training epochs between two checkpoints (useful if you want to save less number of checkpoints instead of saving one checkpoint for every epoch)
-- useCheckpoint specifies if the training starts from the beginning even when checkpoints previously trained are found (default is to resume from checkpoints if found)
+- useCheckpoint specifies how the training resumes
+-- -1: starting from the beginning even when checkpoints previously trained are found
+-- 0 (default) resuming from checkpoints if found
+-- n (n > 0) resuming from the nth checkpoint
 
 To evaluate performance on the benchmark, run
 ```bash
