@@ -63,13 +63,11 @@ Here are som useful options for the main script:
   * 0 (default) resuming from checkpoints if found
   * n (n > 0) resuming from the nth checkpoint
 
-
 To make prediction on a floorplan image, run
 ```bash
-th predict.lua -floorplanFilename "path to the floorplan image" -outputFilename "output filename"
+th predict.lua -loadModel "model path" -floorplanFilename "path to the floorplan image" -outputFilename "output filename"
 ```
-Note that this script will produce the vectorization result (saved in ".txt" file) as well as the rendering image (saved in ".png" file).
-
+Note that the above script will produce the vectorization result (saved in ".txt" file) as well as the rendering image (saved in ".png" file).
 
 To evaluate performance on the benchmark, run
 ```bash
