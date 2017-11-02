@@ -1,9 +1,9 @@
 package.path = '../util/lua/?.lua;' .. package.path
 local fp_ut = require 'floorplan_utils'
 
-dataPath = '../data/'
+local dataPath = '../data/'
 
-local imageInfo = csvigo.load({path=dataPath + '/test.txt', mode="large", header=false, separator='\t'})
+local imageInfo = csvigo.load({path=dataPath .. '/test.txt', mode="large", header=false, separator='\t'})
 
 local result = {}
 for _, mode in pairs({'Wall Junction', 'Door', 'Object', 'Room'}) do
@@ -19,11 +19,11 @@ local filenames = {}
 --local finalExamples = {1, 2, 4, 5, 6}
 --for _, i in pairs(finalExamples) do
 local results = {}
-for k, v in pairs(photo_info) do
+for k, v in pairs(imageInfo) do
    local floorplanFilename = dataPath .. v[1]
    local representationFilename = dataPath .. v[2]
 
-
+   
    representationPrediction = fp_ut.invertFloorplan(floorplan, false)
    local singleResult = fp_ut.evaluateResult(floorplan:size(3), floorplan:size(2), representationTarget, representationPrediction, {pointDistanceThreshold = 0.02, doorDistanceThreshold = 0.02, iconIOUThreshold = 0.5, segmentIOUThreshold = 0.7}, result)
    table.insert(results, singleResult)

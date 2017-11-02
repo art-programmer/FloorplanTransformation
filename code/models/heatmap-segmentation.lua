@@ -6,6 +6,13 @@ local nn = require 'nn'
 
 local function createModel(opt)
 
+   if opt.loadModel ~= '' then
+      local model = torch.load(opt.loadModel)
+      model:cuda()
+      print(model)      
+      return model
+   end
+   
    if opt.loadPoseEstimationModel ~= '' then
       local nOutput = 51 --This is slightly more than our final number of output channels. The actually used number of channels is 13 (wall corner) + 4 (opening corner) + 4 (icon corner) + 10 (opening/icon/empty segmentation) + 11 (wall/room segmentation)
       
@@ -33,12 +40,6 @@ local function createModel(opt)
       return model
    end
    
-   if opt.loadModel ~= '' then
-      local model = torch.load(opt.loadModel)
-      model:cuda()
-      print(model)      
-      return model
-   end
    assert(false, 'Please specify either opt.loadPoseEstimationModel or opt.loadModel')
 end
 

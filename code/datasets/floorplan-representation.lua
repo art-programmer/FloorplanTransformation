@@ -12,11 +12,8 @@ local FloorplanDataset = torch.class('FloorplanDataset', M)
 function FloorplanDataset:__init(imageInfo, opt, split)
    self.imageInfo = imageInfo[split]
    if split == 'train' then
-      self.imageInfo.floorplanPaths = self.imageInfo.floorplanPaths:repeatTensor(opt.nRepetitionsPerEpochTrain, 1)            
-      self.imageInfo.representationPaths = self.imageInfo.representationPaths:repeatTensor(opt.nRepetitionsPerEpochTrain, 1)
-   else
-      self.imageInfo.floorplanPaths = self.imageInfo.floorplanPaths:repeatTensor(opt.nRepetitionsPerEpochTest, 1)      
-      self.imageInfo.representationPaths = self.imageInfo.representationPaths:repeatTensor(opt.nRepetitionsPerEpochTest, 1)
+      self.imageInfo.floorplanPaths = self.imageInfo.floorplanPaths:repeatTensor(opt.checkpointEpochInterval, 1)            
+      self.imageInfo.representationPaths = self.imageInfo.representationPaths:repeatTensor(opt.checkpointEpochInterval, 1)
    end
    self.opt = opt
    self.split = split

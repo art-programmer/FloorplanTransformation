@@ -14,14 +14,11 @@ function checkpoint.latest(opt)
 end
 
 function checkpoint.load(opt)
-   if opt.useCheckpoint == false then
-      return nil
-   end
    --print(opt.epochNumber)
-   local epoch = opt.epochNumber
-   if epoch == 0 then
+   local epoch = opt.useCheckpoint
+   if epoch == -1 then
       return nil
-   elseif epoch < 0 then
+   if epoch == 0 then
       -- finding the latest epoch, requiring 'latest.t7'
       return checkpoint.latest(opt)
    end

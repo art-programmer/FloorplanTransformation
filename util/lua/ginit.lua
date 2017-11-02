@@ -27,7 +27,7 @@ function ginit(opt)
 --  py = require 'fb.python'
 
   --gp = require 'gpath'
-  --ut = require 'utils'
+  ut = require 'utils'
   fp_ut = require 'floorplan_utils'
   --nnut = require 'nn_utils'
   --wut = require 'www_utils'
