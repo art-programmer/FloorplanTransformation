@@ -1,12 +1,12 @@
 require 'nn'
-require 'cunn'
+--require 'cunn'
 require 'cudnn'
-require 'dpnn'
-require 'nnx'
-local inn = require 'inn'
-if not nn.SpatialConstDiagonal then
-   torch.class('nn.SpatialConstDiagonal', 'inn.ConstAffine')
-end
+--require 'dpnn'
+--require 'nnx'
+--local inn = require 'inn'
+-- if not nn.SpatialConstDiagonal then
+--    torch.class('nn.SpatialConstDiagonal', 'inn.ConstAffine')
+-- end
 --local utils = paths.dofile('modelUtils.lua')
 --require 'models/DeepMask'
 

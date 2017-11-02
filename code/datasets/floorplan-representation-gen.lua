@@ -61,16 +61,16 @@ function M.exec(opt, cacheFile)
    local info = {
       basedir = opt.data,
       train = {
-         floorplanPaths = floorplanPathsTrain
-         representationPaths = representationPathsTrain
+         floorplanPaths = floorplanPathsTrain,
+         representationPaths = representationPathsTrain,
       },
       val = {
-         floorplanPaths = floorplanPathsVal
-         representationPaths = representationPathsVal
+         floorplanPaths = floorplanPathsVal,
+         representationPaths = representationPathsVal,
       },
       test = {
-         floorplanPaths = floorplanPathsTest
-         representationPaths = representationPathsTest
+         floorplanPaths = floorplanPathsTest,
+         representationPaths = representationPathsTest,
       },
    }
 
