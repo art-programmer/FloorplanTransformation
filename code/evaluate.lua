@@ -1,8 +1,29 @@
+require 'nn'
+require 'cudnn'
+require 'cunn'
+
 package.path = '../util/lua/?.lua;' .. package.path
 local fp_ut = require 'floorplan_utils'
+pl = require 'pl.import_into' ()
+
+pl.dir.makepath('test/')
+
+
+local opts = require 'opts'
+local opt = opts.parse(arg)
+opts.init(opt)
+
+local modelHeatmap = torch.load(opt.loadModel)
+local heatmapBranch = nn.Sequential():add(nn.MulConstant(0.1))
+local segmentationBranch_1 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, opt.sampleDim, opt.sampleDim, 13)):add(nn.Transpose({3, 4}, {2, 3}))
+local segmentationBranch_2 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, opt.sampleDim, opt.sampleDim, 17)):add(nn.Transpose({3, 4}, {2, 3}))
+modelHeatmap:add(nn.ParallelTable():add(heatmapBranch):add(segmentationBranch_1):add(segmentationBranch_2))
+modelHeatmap:add(nn.JoinTable(1, 3))
+modelHeatmap:cuda()
+modelHeatmap:evaluate()
+
 
 local dataPath = '../data/'
-
 local imageInfo = csvigo.load({path=dataPath .. '/test.txt', mode="large", header=false, separator='\t'})
 
 local result = {}
@@ -19,12 +40,20 @@ local filenames = {}
 --local finalExamples = {1, 2, 4, 5, 6}
 --for _, i in pairs(finalExamples) do
 local results = {}
-for k, v in pairs(imageInfo) do
-   local floorplanFilename = dataPath .. v[1]
-   local representationFilename = dataPath .. v[2]
 
+local resultPath = opt.resultPath or 'results/'
+if resultPath then
+   pl.dir.makepath(resultPath)
+end
+
+for index, filenames in pairs(imageInfo) do
+   local floorplanFilename = dataPath .. filenames[1]
+   local representationFilename = dataPath .. filenames[2]
+   local floorplan = image.load(floorplanFilename, 3)
+   local representationTarget = fp_ut.loadRepresentation(representationFilename)
    
-   representationPrediction = fp_ut.invertFloorplan(floorplan, false)
+   local representationPrediction = fp_ut.invertFloorplan(modelHeatmap, floorplan)
+   
    local singleResult = fp_ut.evaluateResult(floorplan:size(3), floorplan:size(2), representationTarget, representationPrediction, {pointDistanceThreshold = 0.02, doorDistanceThreshold = 0.02, iconIOUThreshold = 0.5, segmentIOUThreshold = 0.7}, result)
    table.insert(results, singleResult)
    for mode, values in pairs(singleResult) do
@@ -33,16 +62,21 @@ for k, v in pairs(imageInfo) do
       end
    end
 
-   table.insert(filenames, floorplanFilename)
+   local representationImage = fp_ut.drawRepresentationImage(floorplan, representationPrediction)
+   --image.save(resultPath .. predictionFilename, representationImage)
+   local img = torch.cat(floorplan, representationImage, 3)
+   local floorplanPredictionFilename = 'representation_prediction_' .. index .. '.png'
+   local predictionFilename = resultPath .. floorplanPredictionFilename
+   image.save(predictionFilename, img)   
+   table.insert(filenames, predictionFilename)
+
+   if index == 10 then
+      break
+   end
 end
 
 print(results)
 
-
-local resultPath = resultPath or 'results/'
-if resultPath then
-   pl.dir.makepath(resultPath)
-end
 
 local resultFile = io.open(resultPath .. 'index.html', 'w')
 resultFile:write("<!DOCTYPE html><html><head></head><body>")

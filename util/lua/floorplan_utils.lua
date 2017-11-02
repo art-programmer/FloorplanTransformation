@@ -4037,7 +4037,7 @@ function utils.filterPoints(width, height, points, pointsConfidence, lineWidth, 
    return newPoints
 end
 
-function utils.invertFloorplan(modelPath, floorplan, withoutQP, relaxedQP, useStack)
+function utils.invertFloorplan(model, floorplan, withoutQP, relaxedQP, useStack)
    local lineWidth = lineWidth or 3
    local useStack = useStack or false
 
@@ -4050,7 +4050,7 @@ function utils.invertFloorplan(modelPath, floorplan, withoutQP, relaxedQP, useSt
    local floorplan = image.scale(floorplan, width, height)
 
 
-   local junctionHeatmaps, doorHeatmaps, iconHeatmaps, segmentations = utils.estimateHeatmaps(modelPath, floorplanOri:clone(), 'single', useStack)
+   local junctionHeatmaps, doorHeatmaps, iconHeatmaps, segmentations = utils.estimateHeatmaps(model, floorplanOri:clone(), 'single', useStack)
    --local junctionHeatmaps, doorHeatmaps, iconHeatmaps, _ = utils.estimateHeatmaps(floorplanOri:clone(), 'single', true)
 
 
@@ -4074,7 +4074,7 @@ function utils.invertFloorplan(modelPath, floorplan, withoutQP, relaxedQP, useSt
    py.execute('import os')
 
    if withoutQP then
-      py.execute('os.system("python ../InverseCAD/PostProcessing/QP.py 1")')
+      py.execute('os.system("python PostProcessing/QP.py 1")')
       representation.points = utils.loadItems('test/points_out.txt')
       representation.doors = utils.loadItems('test/doors_out.txt')
       representation.icons = utils.loadItems('test/icons_out.txt')
@@ -4127,11 +4127,7 @@ function utils.invertFloorplan(modelPath, floorplan, withoutQP, relaxedQP, useSt
       return representation
    end
 
-   if relaxedQP then
-      py.execute('os.system("python ../code/PostProcessing/QP_clean.py")')
-   else
-      py.execute('os.system("python ../code/PostProcessing/QP.py")')
-   end
+   py.execute('os.system("python PostProcessing/QP.py")')
 
 
    --os.exit(1)
@@ -8857,34 +8853,22 @@ function utils.extractWallPoints(masks, numPoints, lineWidth, lineMinLength, get
    return points
 end
 
-function utils.estimateHeatmaps(modelPath, floorplan, scaleType)
+function utils.estimateHeatmaps(modelHeatmap, floorplan, scaleType)
 
    local scaleType = scaleType or 'single'
    local width, height = floorplan:size(3), floorplan:size(2)
    local sampleDim = 256
 
-   if not utils.modelHeatmap then
-      utils.modelHeatmap = torch.load(modelPath)
-   end
-
-
-   local heatmapBranch = nn.Sequential():add(nn.MulConstant(0.1))
-   local segmentationBranch_1 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, sampleDim, sampleDim, 13)):add(nn.Transpose({3, 4}, {2, 3}))
-   local segmentationBranch_2 = nn.Sequential():add(nn.SoftMax()):add(nn.View(-1, sampleDim, sampleDim, 17)):add(nn.Transpose({3, 4}, {2, 3}))
-   utils.modelHeatmap:add(nn.ParallelTable():add(heatmapBranch):add(segmentationBranch_1):add(segmentationBranch_2):cuda())
-   utils.modelHeatmap:add(nn.JoinTable(1, 3):cuda())
-   utils.modelHeatmap:evaluate()
-
    
-   package.path = '../code/datasets/?.lua;' .. package.path
-   package.path = '../code/?.lua;' .. package.path
+   package.path = 'datasets/?.lua;' .. package.path
+   package.path = '?.lua;' .. package.path
    local dataset = require('floorplan-representation')
    dataset.split = 'val'
 
    local output
    if scaleType == 'single' then
       --local input = dataset:preprocessResize(sampleDim, sampleDim)(floorplan):repeatTensor(1, 1, 1, 1):cuda()
-      --output = utils.modelHeatmap:forward(input)[1]:double()
+      --output = modelHeatmap:forward(input)[1]:double()
 
 
       local floorplanScaled = dataset:preprocessScale(sampleDim)(floorplan)
@@ -8901,7 +8885,7 @@ function utils.estimateHeatmaps(modelPath, floorplan, scaleType)
       temp:narrow(2, offsetY + 1, floorplanScaled:size(2)):narrow(3, offsetX + 1, floorplanScaled:size(3)):copy(floorplanScaled)
       local input = temp:repeatTensor(1, 1, 1, 1):cuda()
 
-      output = utils.modelHeatmap:forward(input)[1]:double()
+      output = modelHeatmap:forward(input)[1]:double()
       output = image.crop(output, offsetX, offsetY, offsetX + floorplanScaled:size(3), offsetY + floorplanScaled:size(2))
 
       --[[
@@ -8948,7 +8932,7 @@ function utils.estimateHeatmaps(modelPath, floorplan, scaleType)
       local outputs = torch.zeros(inputs:size(1), 51, sampleDim, sampleDim)
       for batchOffset = 0, inputs:size(1) - 1, 4 do
 	 local numInputs = math.min(inputs:size(1) - batchOffset, 4)
-	 outputs[{{batchOffset + 1, batchOffset + numInputs}}]:copy(utils.modelHeatmap:forward(inputs[{{batchOffset + 1, batchOffset + numInputs}}]):double())
+	 outputs[{{batchOffset + 1, batchOffset + numInputs}}]:copy(modelHeatmap:forward(inputs[{{batchOffset + 1, batchOffset + numInputs}}]):double())
       end
 
 

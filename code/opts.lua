@@ -100,6 +100,11 @@ function M.parse(arg)
    cmd:option('-tmp',       'test/',     'path to write temporary file')
    cmd:option('-logIter',         0,      'logging interval')
    cmd:option('-numFolds',         5,      'the number of folds')
+
+   ------------- testing options ---------------
+   cmd:option('-resultPath', 'results', 'path to save evaluation results')   
+   cmd:option('-floorplanFilename', '', 'filename for the floorplan to test')
+   cmd:option('-outputFilename', '', 'filename for saving the prediction')
    
    cmd:text()
    
