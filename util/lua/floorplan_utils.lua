@@ -4,7 +4,7 @@ local pl = require 'pl.import_into' ()
 cv = require 'cv'
 require 'cv.imgproc'
 py = require('python')
-paths.dofile('/home/chenliu/Projects/Floorplan/floorplan/InverseCAD/models/SpatialSymmetricPadding.lua')
+--paths.dofile('/home/chenliu/Projects/Floorplan/floorplan/InverseCAD/models/SpatialSymmetricPadding.lua')
 
 local utils = {}
 
