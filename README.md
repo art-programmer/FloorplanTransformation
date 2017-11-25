@@ -85,7 +85,21 @@ For the C++ code, run the following:
 cd popup/code/
 cmake .
 make
-popup_cli ../data/floorplan_1.txt
+./popup_cli ../data/floorplan_1.txt
+```
+
+The data file (../data/floorplan_1.txt) has the following format:
+
+```csv
+width height
+#walls
+(Wall descriptions)
+x_1, y_1, x_2, y_2, room type on the left, room type on the right
+...
+(Opening descriptions)
+x_1, y_1, x_2, y_2, 'door', dummy, dummy
+(Icon descriptions)
+x_1, y_1, x_2, y_2, icon type, dummy, dummy
 ```
 
 ## Contact
