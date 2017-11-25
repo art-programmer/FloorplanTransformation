@@ -88,11 +88,11 @@ make
 ./popup_cli ../data/floorplan_1.txt
 ```
 
-The data file (../data/floorplan_1.txt) has the following format:
+The data file (e.g., popup/data/floorplan_1.txt) has the following format:
 
 ```csv
 width height
-#walls
+the number of walls
 (Wall descriptions)
 x_1, y_1, x_2, y_2, room type on the left, room type on the right
 ...
@@ -101,6 +101,19 @@ x_1, y_1, x_2, y_2, 'door', dummy, dummy
 (Icon descriptions)
 x_1, y_1, x_2, y_2, icon type, dummy, dummy
 ```
+
+The Python code is based on Panda3D. First enter folder rendering/, and then either run:
+
+```bash
+python viewer.py
+```
+
+to view a 3D model, or run:
+
+```bash
+python rendering.py
+```
+to render one view of the 3D model given camera pose. Please check the code to see how to specify the model to view and how to render different views.
 
 ## Contact
 
