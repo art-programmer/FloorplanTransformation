@@ -77,6 +77,17 @@ To evaluate performance on the benchmark, run
 th evaluate.lua -loadModel "model path" -resultPath "path to save results"
 ```
 
+## Generate 3D models
+Automatic 3D model generation based on our vectorization results is implemented in both C++ (under folder popup/) and Python (under folder rendering/). (Both are finished in a hurry, so please let us know if you have any questions.)
+
+For the C++ code, run the following:
+```bash
+cd popup/code/
+cmake .
+make
+popup_cli ../data/floorplan_1.txt
+```
+
 ## Contact
 
 If you have any questions, please contact me at chenliu@wustl.edu.
