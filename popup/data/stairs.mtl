@@ -1,0 +1,10 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+
+newmtl _auto_38
+Ka 0.000000 0.000000 0.000000
+Kd 0.721569 0.709804 0.686275
+Ks 0.330000 0.330000 0.330000
+map_Kd stairs/_auto_38.jpg
+
