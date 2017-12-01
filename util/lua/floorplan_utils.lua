@@ -9082,7 +9082,7 @@ function utils.proceduralGeneration(floorplan)
    return
 end
 
-function utils.writePopupData(width, height, representation, filename, floorplan)
+function utils.writePopupData(width, height, representation, filename)
    local floorplanSegmentation, shortWalls = utils.getSegmentation(width, height, representation)
    floorplanSegmentation = floorplanSegmentation[1]
 
@@ -9176,9 +9176,9 @@ function utils.writePopupData(width, height, representation, filename, floorplan
    end
 
    representationFile:close()
-   if floorplan then
-      image.save(filename .. '.png', floorplan)
-   end
+   --if floorplan then
+   --image.save(filename .. '.png', floorplan)
+   --end
 end
 
 return utils
