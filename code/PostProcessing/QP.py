@@ -2229,16 +2229,20 @@ try:
         point_1 = wallPoints[wall[0]]
         point_2 = wallPoints[wall[1]]
 
-        result_file.write(str(torch.round(point_1[0])) + '\t' + str(torch.round(point_1[1])) + '\t')
-        result_file.write(str(torch.round(point_2[0])) + '\t' + str(torch.round(point_2[1])) + '\t')
+        #result_file.write(str(int(round(point_1[0]))) + '\t' + str(int(round(point_1[1]))) + '\t')
+        #result_file.write(str(int(round(point_2[0]))) + '\t' + str(int(round(point_2[1]))) + '\t')
+        result_file.write(str(point_1[0]) + '\t' + str(point_1[1]) + '\t')
+        result_file.write(str(point_2[0]) + '\t' + str(point_2[1]) + '\t')
         result_file.write(str(filteredWallLabels[wallIndex][0]) + '\t' + str(filteredWallLabels[wallIndex][1]) + '\n')
 
       for doorIndex, door in enumerate(filteredDoorLines):
         point_1 = doorPoints[door[0]]
         point_2 = doorPoints[door[1]]
         
-        result_file.write(str(torch.round(point_1[0])) + '\t' + str(torch.round(point_1[1])) + '\t')
-        result_file.write(str(torch.round(point_2[0])) + '\t' + str(torch.round(point_2[1])) + '\t')
+        #result_file.write(str(int(round(point_1[0]))) + '\t' + str(int(round(point_1[1]))) + '\t')
+        #result_file.write(str(int(round(point_2[0]))) + '\t' + str(int(round(point_2[1]))) + '\t')
+        result_file.write(str(point_1[0]) + '\t' + str(point_1[1]) + '\t')
+        result_file.write(str(point_2[0]) + '\t' + str(point_2[1]) + '\t')
         result_file.write('door\t')
         result_file.write(str(filteredDoorTypes[doorIndex] + 1) + '\t1\n')
 
@@ -2248,11 +2252,15 @@ try:
         point_3 = iconPoints[icon[2]]
         point_4 = iconPoints[icon[3]]
 
-        x_1 = int(torch.round((point_1[0] + point_3[0]) / 2))
-        x_2 = int(torch.round((point_2[0] + point_4[0]) / 2))
-        y_1 = int(torch.round((point_1[1] + point_2[1]) / 2))
-        y_2 = int(torch.round((point_3[1] + point_4[1]) / 2))
-
+        # x_1 = int(round((point_1[0] + point_3[0]) / 2))
+        # x_2 = int(round((point_2[0] + point_4[0]) / 2))
+        # y_1 = int(round((point_1[1] + point_2[1]) / 2))
+        # y_2 = int(round((point_3[1] + point_4[1]) / 2))
+        x_1 = int((point_1[0] + point_3[0]) / 2)
+        x_2 = int((point_2[0] + point_4[0]) / 2)
+        y_1 = int((point_1[1] + point_2[1]) / 2)
+        y_2 = int((point_3[1] + point_4[1]) / 2)
+        
         result_file.write(str(x_1) + '\t' + str(y_1) + '\t')
         result_file.write(str(x_2) + '\t' + str(y_2) + '\t')
         result_file.write(iconNumberNameMap[filteredIconTypes[iconIndex]] + '\t')
