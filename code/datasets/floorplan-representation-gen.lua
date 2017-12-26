@@ -18,7 +18,7 @@ local function findImages(opt, split)
       if k % 100 == 0 then
 	 print(k .. ' images loaded')
       end
-	 
+
       local floorplanFilename = opt.data .. '/' .. v[1]
       local representationFilename = opt.data .. '/' .. v[2]
       
