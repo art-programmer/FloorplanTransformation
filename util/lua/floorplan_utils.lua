@@ -3398,7 +3398,8 @@ function utils.findWalls(floorplan, denotedWalls, lineWidth, lineLength)
 end
 
 function utils.invertFloorplanHeuristic(floorplan)
-
+   pl.dir.makepath('test/')
+   
    local width = floorplan:size(3)
    local height = floorplan:size(2)
 
