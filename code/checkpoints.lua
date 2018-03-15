@@ -18,6 +18,7 @@ function checkpoint.load(opt)
    local epoch = opt.useCheckpoint
    if epoch == -1 then
       return nil
+   end
    if epoch == 0 then
       -- finding the latest epoch, requiring 'latest.t7'
       return checkpoint.latest(opt)
