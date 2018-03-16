@@ -102,6 +102,8 @@ x_1, y_1, x_2, y_2, 'door', dummy, dummy
 x_1, y_1, x_2, y_2, icon type, dummy, dummy
 ```
 
+You could optionally use the corresponding input raster image or the final vector-graphics rendering as the texture image for the floor. To do so, please put the image under the data folder and rename it to the same name with the data file with suffix ".png" (e.g., floorplan_1.png).
+
 The Python code is based on Panda3D. First enter folder rendering/, and then either run:
 
 ```bash
