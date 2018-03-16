@@ -1,0 +1,59 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+
+newmtl M_6_White_Marble_Texture_01
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.811765 0.862745
+Ks 0.330000 0.330000 0.330000
+map_Kd cooking_counter/M_6_White_Marble_Texture_01.jpg
+
+newmtl Brushed_Metal_Silver_Texture_by_SweetSoulSister
+Ka 0.000000 0.000000 0.000000
+Kd 0.666667 0.686275 0.701961
+Ks 0.330000 0.330000 0.330000
+map_Kd cooking_counter/Brushed_Metal_Silver_Texture_by_SweetSoulSister.jpg
+
+newmtl Amoora_2
+Ka 0.000000 0.000000 0.000000
+Kd 0.674510 0.439216 0.364706
+Ks 0.330000 0.330000 0.330000
+map_Kd cooking_counter/Amoora_2.jpg
+
+newmtl FrontColor
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.330000 0.330000 0.330000
+
+newmtl dark_sketch_stone
+Ka 0.000000 0.000000 0.000000
+Kd 0.294118 0.294118 0.294118
+Ks 0.330000 0.330000 0.330000
+map_Kd cooking_counter/dark_sketch_stone.jpg
+
+newmtl Amoora
+Ka 0.000000 0.000000 0.000000
+Kd 0.674510 0.439216 0.364706
+Ks 0.330000 0.330000 0.330000
+map_Kd cooking_counter/Amoora.jpg
+
+newmtl patterns_wavy_background_texture_metal_silver_18405_1920x1200
+Ka 0.000000 0.000000 0.000000
+Kd 0.501961 0.494118 0.482353
+Ks 0.330000 0.330000 0.330000
+map_Kd cooking_counter/patterns_wavy_background_texture_metal_silver_18405_1920x1200.jpg
+
+newmtl Translucent_Glass_Block_Dark
+Ka 0.000000 0.000000 0.000000
+Kd 0.478431 0.486275 0.466667
+Ks 0.330000 0.330000 0.330000
+d 0.800000
+map_Kd cooking_counter/Translucent_Glass_Block_Dark.jpg
+
+newmtl _Translucent_Glass_Block_Dark_1
+Ka 0.000000 0.000000 0.000000
+Kd 0.478431 0.486275 0.466667
+Ks 0.330000 0.330000 0.330000
+d 0.800000
+map_Kd cooking_counter/_Translucent_Glass_Block_Dark_1.jpg
+
