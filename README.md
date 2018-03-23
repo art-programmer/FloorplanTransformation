@@ -8,7 +8,7 @@ floorplan image into a vector-graphics representation.
 Our algorithm significantly outperforms
 existing methods and achieves around 90% precision and
 recall, getting to the range of production-ready performance. 
-To learn more, please see our ICCV 2017 [paper](https://www.cse.wustl.edu/~chenliu/floorplan-transformation/paper.pdf) or visit our [project website](https://www.cse.wustl.edu/~chenliu/floorplan-transformation.html).
+To learn more, please refer to our ICCV 2017 [paper](http://art-programmer.github.io/floorplan-transformation/paper.pdf) or visit our [project website](http://art-programmer.github.io/floorplan-transformation.html).
 
 This code implements the algorithm described in our paper in Torch7.
 
