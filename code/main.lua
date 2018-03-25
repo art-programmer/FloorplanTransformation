@@ -60,7 +60,9 @@ end
 local loggerLoss = optim.Logger(paths.concat(opt.resume, 'loss.log'))
 loggerLoss:setNames{'Training', 'Test'}
 
-local startEpoch = checkpoint and checkpoint.epoch + 1 or math.max(1, opt.epochNumber)
+--local startEpoch = checkpoint and checkpoint.epoch + 1 or math.max(1, opt.epochNumber)
+local startEpoch = checkpoint and checkpoint.epoch + 1 or 1
+
 local bestLoss = math.huge
 for epoch = startEpoch, opt.nEpochs do
    -- Train for a single epoch
