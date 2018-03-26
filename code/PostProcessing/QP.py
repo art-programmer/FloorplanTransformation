@@ -120,7 +120,7 @@ def writeDoors(points, lines, doorTypes):
     for lineIndex, line in enumerate(lines):
       point_1 = points[line[0]]
       point_2 = points[line[1]]
-      
+
       doors_file.write(str(point_1[0] + 1) + '\t' + str(point_1[1] + 1) + '\t')
       doors_file.write(str(point_2[0] + 1) + '\t' + str(point_2[1] + 1) + '\t')
       doors_file.write('door\t')
@@ -145,7 +145,7 @@ def writeIcons(points, icons, iconTypes):
       icons_file.write(iconNumberNameMap[iconTypes[iconIndex]] + '\t')
       icons_file.write(str(iconNumberStyleMap[iconTypes[iconIndex]]) + '\t')
       icons_file.write('1\n')
-    icons_file.close()  
+    icons_file.close()
 
 
 def adjustPoints(points, lines):
@@ -164,7 +164,7 @@ def adjustPoints(points, lines):
       else:
         lineDimNeighbor = 1
         pass
-      
+
       if lineDimNeighbor != lineDim:
         continue
       if neighborLine[0] != line[0] and neighborLine[0] != line[1] and neighborLine[1] != line[0] and neighborLine[1] != line[1]:
@@ -195,11 +195,11 @@ def adjustPoints(points, lines):
         break
       lineGroup = newLineGroup
       continue
-    
+
     for line in lineGroup:
       visitedLines[line] = True
       continue
-    
+
     pointGroup = []
     for line in lineGroup:
       for index in xrange(2):
@@ -209,19 +209,19 @@ def adjustPoints(points, lines):
           pass
         continue
       continue
-          
+
     lineDim = calcLineDim(points, lines[lineGroup[0]])
     fixedValue = 0
     for point in pointGroup:
       fixedValue += points[point][1 - lineDim]
       continue
     fixedValue /= len(pointGroup)
-    
+
     for point in pointGroup:
       points[point][1 - lineDim] = fixedValue
       continue
     continue
-  
+
 
 def adjustDoorPoints(doorPoints, doorLines, wallPoints, wallLines, doorWallMap):
   for doorLineIndex, doorLine in enumerate(doorLines):
@@ -234,11 +234,11 @@ def adjustDoorPoints(doorPoints, doorLines, wallPoints, wallLines, doorWallMap):
       doorPoints[doorLine[endPointIndex]][1 - lineDim] = fixedValue
       continue
     continue
-  
-  
+
+
 def drawLineMask(points, lines, lineWidth = 5, backgroundImage = None):
   lineMask = np.zeros((height, width))
-  
+
   for lineIndex, line in enumerate(lines):
     point_1 = points[line[0]]
     point_2 = points[line[1]]
@@ -264,7 +264,7 @@ def drawLinesToyExample(filename, width, height, points, lines, lineLabels = [],
   else:
     image = backgroundImage
     pass
-  
+
   for lineIndex, line in enumerate(lines):
     point_1 = points[line[0]]
     point_2 = points[line[1]]
@@ -321,7 +321,7 @@ def drawLinesToyExample(filename, width, height, points, lines, lineLabels = [],
           image[minValue - lineWidth:maxValue + lineWidth, max(fixedValue - lineWidth, 0):min(fixedValue + lineWidth, width), 3] = 255
         else:
           image[minValue:maxValue, max(fixedValue - lineWidth, 0):min(fixedValue + lineWidth, width), 3] = 255
-        
+
   if filename == '':
     return image
   else:
@@ -335,7 +335,7 @@ def drawLines(filename, width, height, points, lines, lineLabels = [], backgroun
   else:
     image = backgroundImage
     pass
-  
+
   for lineIndex, line in enumerate(lines):
     point_1 = points[line[0]]
     point_2 = points[line[1]]
@@ -367,7 +367,7 @@ def drawLines(filename, width, height, points, lines, lineLabels = [], backgroun
         pass
       pass
     continue
-          
+
   if filename == '':
     return image
   else:
@@ -380,7 +380,7 @@ def drawRectangles(filename, width, height, points, rectangles, labels, lineWidt
   else:
     image = backgroundImage
     pass
-  
+
   for rectangleIndex, rectangle in enumerate(rectangles):
     point_1 = points[rectangle[0]]
     point_2 = points[rectangle[1]]
@@ -400,14 +400,14 @@ def drawRectangles(filename, width, height, points, rectangles, labels, lineWidt
         color = rectangleColor
     else:
       color = colorMap[labels[rectangleIndex]]
-                       
+
     image[max(point_1[1] - lineWidth, 0):min(point_1[1] + lineWidth, height), point_1[0]:point_2[0] + 1, :] = color
     image[max(point_3[1] - lineWidth, 0):min(point_3[1] + lineWidth, height), point_3[0]:point_4[0] + 1, :] = color
     image[point_1[1]:point_3[1] + 1, max(point_1[0] - lineWidth, 0):min(point_1[0] + lineWidth, width), :] = color
     image[point_2[1]:point_4[1] + 1, max(point_2[0] - lineWidth, 0):min(point_2[0] + lineWidth, width), :] = color
 
     continue
-  
+
   if filename == '':
     return image
   else:
@@ -415,10 +415,10 @@ def drawRectangles(filename, width, height, points, rectangles, labels, lineWidt
 
 
 def calcPointInfo(points, gap, minDistanceOnly = False, doubleDirection = False):
-  lines = []  
+  lines = []
   pointOrientationLinesMap = []
   pointNeighbors = [[] for point in points]
-  
+
   for pointIndex, point in enumerate(points):
     pointType = point[2]
     orientations = pointOrientations[pointType][point[3]]
@@ -455,11 +455,11 @@ def calcPointInfo(points, gap, minDistanceOnly = False, doubleDirection = False)
         ranges[c] = min(ranges[c], point[c] - deltas[c])
         ranges[c + 2] = max(ranges[c + 2], point[c] + deltas[c])
         continue
-        
+
       neighborPoints = []
       minDistance = max(width, height)
       minDistanceNeighborPoint = -1
-        
+
       for neighborPointIndex, neighborPoint in enumerate(points):
         if (neighborPointIndex <= pointIndex and not doubleDirection) or neighborPointIndex == pointIndex:
           continue
@@ -468,7 +468,7 @@ def calcPointInfo(points, gap, minDistanceOnly = False, doubleDirection = False)
         if oppositeOrientation not in neighborOrientations:
           continue
 
-            
+
         inRange = True
         for c in xrange(2):
           if neighborPoint[c] < ranges[c] or neighborPoint[c] > ranges[c + 2]:
@@ -494,14 +494,14 @@ def calcPointInfo(points, gap, minDistanceOnly = False, doubleDirection = False)
       if minDistanceOnly and minDistanceNeighborPoint >= 0:
         neighborPoints.append(minDistanceNeighborPoint)
         pass
-        
+
 
       for neighborPointIndex in neighborPoints:
         neighborPoint = points[neighborPointIndex]
 
         if doubleDirection and ((pointIndex, neighborPointIndex) in lines or (neighborPointIndex, pointIndex) in lines):
           continue
-          
+
         lineIndex = len(lines)
         pointOrientationLinesMap[pointIndex][orientation].append(lineIndex)
         #print(str(neighborPointIndex) + ' ' + str(oppositeOrientation))
@@ -523,13 +523,13 @@ def calcPointInfo(points, gap, minDistanceOnly = False, doubleDirection = False)
       continue
     continue
 
-  
+
   return lines, pointOrientationLinesMap, pointNeighbors
 
 
 def findIcons(points, gap, minDistanceOnly = False, maxLengths = (10000, 10000)):
   pointOrientationNeighborsMap = []
-    
+
   for pointIndex, point in enumerate(points):
     pointType = point[2]
     orientations = pointOrientations[pointType][point[3]]
@@ -566,7 +566,7 @@ def findIcons(points, gap, minDistanceOnly = False, maxLengths = (10000, 10000))
         ranges[c] = min(ranges[c], point[c] - deltas[c])
         ranges[c + 2] = max(ranges[c + 2], point[c] + deltas[c])
         continue
-        
+
       neighborPoints = []
       minDistance = max(width, height)
       minDistanceNeighborPoint = -1
@@ -577,7 +577,7 @@ def findIcons(points, gap, minDistanceOnly = False, maxLengths = (10000, 10000))
         neighborOrientations = pointOrientations[neighborPoint[2]][neighborPoint[3]]
         if oppositeOrientation not in neighborOrientations:
           continue
-            
+
         inRange = True
         for c in xrange(2):
           if neighborPoint[c] < ranges[c] or neighborPoint[c] > ranges[c + 2]:
@@ -591,7 +591,7 @@ def findIcons(points, gap, minDistanceOnly = False, maxLengths = (10000, 10000))
         distance = abs(neighborPoint[lineDim] - point[lineDim])
         if distance > maxLengths[lineDim]:
           continue
-          
+
         if minDistanceOnly:
           if distance < minDistance:
             minDistance = distance
@@ -606,7 +606,7 @@ def findIcons(points, gap, minDistanceOnly = False, maxLengths = (10000, 10000))
       if minDistanceOnly and minDistanceNeighborPoint >= 0:
         neighborPoints.append(minDistanceNeighborPoint)
         pass
-      
+
       for neighborPointIndex in neighborPoints:
         pointOrientationNeighborsMap[pointIndex][orientation].append(neighborPointIndex)
         pointOrientationNeighborsMap[neighborPointIndex][oppositeOrientation].append(pointIndex)
@@ -614,7 +614,7 @@ def findIcons(points, gap, minDistanceOnly = False, maxLengths = (10000, 10000))
       continue
     continue
 
-  
+
   icons = []
   orderedOrientations = (1, 2, 3, 0)
   for pointIndex_1, orientationNeighbors in enumerate(pointOrientationNeighborsMap):
@@ -710,9 +710,9 @@ def findLineNeighbors(points, lines, gap):
       continue
     if not hasChange:
       break
-    
 
-  for lineIndex, directionNeighbors in enumerate(lineNeighbors):  
+
+  for lineIndex, directionNeighbors in enumerate(lineNeighbors):
     for direction, neighbors in enumerate(directionNeighbors):
       for neighbor, region in neighbors.iteritems():
         labelVotes = labelVotesMap[:, region[1][1], region[1][0]] + labelVotesMap[:, region[0][1], region[0][0]] - labelVotesMap[:, region[0][1], region[1][0]] - labelVotesMap[:, region[1][1], region[0][0]]
@@ -720,7 +720,7 @@ def findLineNeighbors(points, lines, gap):
         continue
       continue
     continue
-  
+
 
   return lineNeighbors
 
@@ -741,7 +741,7 @@ def findLineNeighborsCross(points, lines, points_2, lines_2, lineNeighbors_2, ga
         continue
       fixedValue_1 = points[line[0]][1 - lineDim]
       fixedValue_2 = points_2[neighborLine[0]][1 - lineDim]
-      
+
       if abs(fixedValue_2 - fixedValue_1) < gap:
         continue
       minValue = int(minValue)
@@ -792,14 +792,14 @@ def findLineNeighborsCross(points, lines, points_2, lines_2, lineNeighbors_2, ga
             neighborValid = False
             break
           continue
-        
+
         if neighborValid:
           newLineNeighbors[lineIndex][direction][neighbor_1] = region_1
           pass
         continue
       continue
     continue
-  
+
   return newLineNeighbors
 
 
@@ -815,11 +815,11 @@ def findRectangleLineNeighbors(rectanglePoints, rectangles, linePoints, lines, l
 
       if maxValue - minValue < gap:
         continue
-      
+
       rectangleFixedValue_1 = (rectanglePoints[rectangle[0]][1 - lineDim] + rectanglePoints[rectangle[1 + lineDim]][1 - lineDim]) / 2
       rectangleFixedValue_2 = (rectanglePoints[rectangle[2 - lineDim]][1 - lineDim] + rectanglePoints[rectangle[3]][1 - lineDim]) / 2
       lineFixedValue = (linePoints[line[0]][1 - lineDim] + linePoints[line[1]][1 - lineDim]) / 2
-      
+
       if lineFixedValue < rectangleFixedValue_2 - gap and lineFixedValue > rectangleFixedValue_1 + gap:
         continue
 
@@ -833,10 +833,10 @@ def findRectangleLineNeighbors(rectanglePoints, rectangles, linePoints, lines, l
         distance = lineFixedValue - rectangleFixedValue_2
         if index not in minDistanceLineNeighbors or distance < minDistanceLineNeighbors[index][1]:
           minDistanceLineNeighbors[index] = (lineIndex, distance, lineDim)
-      
+
       if lineFixedValue < rectangleFixedValue_1 - distanceThreshold or lineFixedValue > rectangleFixedValue_2 + distanceThreshold:
         continue
-      
+
       if lineFixedValue <= rectangleFixedValue_1 + gap:
         if lineDim == 0:
           rectangleLineNeighbors[rectangleIndex][lineIndex] = 1
@@ -851,7 +851,7 @@ def findRectangleLineNeighbors(rectanglePoints, rectangles, linePoints, lines, l
           rectangleLineNeighbors[rectangleIndex][lineIndex] = 1
           pass
         pass
-      
+
       continue
     if len(rectangleLineNeighbors[rectangleIndex]) == 0 or True:
       for index, lineNeighbor in minDistanceLineNeighbors.iteritems():
@@ -881,7 +881,7 @@ def findLineMap(points, lines, points_2, lines_2, gap):
 
       if abs(fixedValue_2 - fixedValue_1) > gap:
         continue
-      
+
       lineMinValue = points[line[0]][lineDim]
       lineMaxValue = points[line[1]][lineDim]
       ratio = float(maxValue - minValue + 1) / (lineMaxValue - lineMinValue + 1)
@@ -917,7 +917,7 @@ def findLineMapSingle(points, lines, points_2, lines_2, gap):
         minDistanceLineIndex = neighborLineIndex
         pass
       continue
-    
+
     #if abs(fixedValue_2 - fixedValue_1) > gap:
     #continue
     #print((lineIndex, minDistance, minDistanceLineIndex))
@@ -945,7 +945,7 @@ def findConflictLinePairs(points, lines, gap):
     for lineIndex_2, line_2 in enumerate(lines):
       if lineIndex_2 <= lineIndex_1:
         continue
-      
+
       point_1 = points[line_2[0]]
       point_2 = points[line_2[1]]
       if point_2[0] - point_1[0] > point_2[1] - point_1[1]:
@@ -953,7 +953,7 @@ def findConflictLinePairs(points, lines, gap):
       else:
         lineDim_2 = 1
         pass
-      
+
       if (line_1[0] == line_2[0] or line_1[1] == line_2[1]) and lineDim_2 == lineDim_1:
         conflictLinePairs.append((lineIndex_1, lineIndex_2))
         continue
@@ -984,7 +984,7 @@ def findConflictLinePairs(points, lines, gap):
         pass
       continue
     continue
-  
+
   return conflictLinePairs
 
 
@@ -1002,10 +1002,10 @@ def findConflictRectanglePairs(points, rectangles, gap):
           conflict = True
           break
         continue
-      
+
       if conflict:
         continue
-      
+
       minX = max(points[rectangle_1[0]][0], points[rectangle_1[2]][0], points[rectangle_2[0]][0], points[rectangle_2[2]][0])
       maxX = min(points[rectangle_1[1]][0], points[rectangle_1[3]][0], points[rectangle_2[1]][0], points[rectangle_2[3]][0])
       if minX > maxX - gap:
@@ -1017,7 +1017,7 @@ def findConflictRectanglePairs(points, rectangles, gap):
       conflictRectanglePairs.append((rectangleIndex_1, rectangleIndex_2))
       continue
     continue
-  
+
   return conflictRectanglePairs
 
 
@@ -1041,7 +1041,7 @@ def findConflictRectangleLinePairs(rectanglePoints, rectangles, linePoints, line
           continue
         if min(rectanglePoints[rectangle[2]][1], rectanglePoints[rectangle[3]][1]) - gap < max(linePoints[line[0]][1], linePoints[line[1]][1]):
           continue
-        
+
       elif lineDim == 1:
         minY = max(rectanglePoints[rectangle[0]][1], rectanglePoints[rectangle[1]][1], linePoints[line[0]][1])
         maxY = min(rectanglePoints[rectangle[2]][1], rectanglePoints[rectangle[3]][1], linePoints[line[1]][1])
@@ -1051,11 +1051,11 @@ def findConflictRectangleLinePairs(rectanglePoints, rectangles, linePoints, line
           continue
         if min(rectanglePoints[rectangle[1]][0], rectanglePoints[rectangle[3]][0]) - gap < max(linePoints[line[0]][0], linePoints[line[1]][0]):
           continue
-        
+
       conflictRectangleLinePairs.append((rectangleIndex, lineIndex))
       continue
     continue
-  
+
   return conflictRectangleLinePairs
 
 
@@ -1089,13 +1089,13 @@ def findConflictLinePairsCross(points_1, lines_1, points_2, lines_2, gap):
 
       if lineDim_1 == lineDim_2:
         continue
-        
+
       if minValue_1 > fixedValue_2 - gap or maxValue_1 < fixedValue_2 + gap or minValue_2 > fixedValue_1 - gap or maxValue_2 < fixedValue_1 + gap:
         continue
       conflictLinePairs.append((lineIndex_1, lineIndex_2))
       continue
     continue
-  
+
   return conflictLinePairs
 
 def maximumSuppression(mask, x, y, heatmapValueThreshold):
@@ -1130,11 +1130,11 @@ def extractLocalMaximum(maskImg, numPoints, info, heatmapValueThreshold = 0.5, c
     pointMask[max(y - lineWidth, 0):min(y + lineWidth, height - 1), max(x - lineWidth, 0):min(x + lineWidth, width - 1)] = 1
 
     points.append([float(x), float(y)] + info + [maxValue, ])
-    
+
     maximumSuppression(mask, x, y, heatmapValueThreshold)
     if closePointSuppression:
       mask[max(y - gap, 0):min(y + gap, height - 1), max(x - gap, 0):min(x + gap, width - 1)] = 0
-    
+
 
     # print(suppressedPoints)
     # meanX = 0
@@ -1147,7 +1147,7 @@ def extractLocalMaximum(maskImg, numPoints, info, heatmapValueThreshold = 0.5, c
     # meanY = float(meanY) / len(suppressedPoints)
     # points.append([meanX, meanY] + info + [maxValue, ])
 
-    
+
     #cv2.imwrite('test/mask_' + str(pointIndex) + '.png', (mask * 255).astype(np.uint8))
     continue
   if maskIndex >= 0:
@@ -1227,7 +1227,7 @@ def augmentPoints(points):
         neighborOrientations = pointOrientations[neighborPoint[2]][neighborPoint[3]]
         if oppositeOrientation not in neighborOrientations:
           continue
-            
+
         inRange = True
         for c in xrange(2):
           if neighborPoint[c] < ranges[c] or neighborPoint[c] > ranges[c + 2]:
@@ -1237,13 +1237,13 @@ def augmentPoints(points):
 
         if not inRange or abs(neighborPoint[lineDim] - point[lineDim]) < max(abs(neighborPoint[1 - lineDim] - point[1 - lineDim]), 1):
           continue
-          
+
         hasNeighbor = True
         break
 
       if not hasNeighbor:
         continue
-      
+
       newOrientations = list(orientations)
       newOrientations.append(orientation)
       newOrientations = tuple(newOrientations)
@@ -1288,7 +1288,7 @@ for junctionType in xrange(13):
   heatmap = heatmap.astype(np.float32) / 255
   heatmaps[junctionType] = heatmap
   continue
-  
+
 wallPoints = []
 for junctionType in xrange(13):
   #cv2.imwrite('test/heatmap_' + str(junctionType) + '.png', (heatmaps[junctionType] * 255).astype(np.uint8))
@@ -1346,7 +1346,7 @@ for segmentIndex in xrange(numLabels):
   #_, segmentation_img = cv2.threshold(segmentation_img, 127, 255, cv2.THRESH_BINARY)
   #kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
   #segmentation_img = cv2.morphologyEx(segmentation_img, cv2.MORPH_CLOSE, kernel)
-  
+
   segmentation_img = segmentation_img.astype(np.float32) / 255
   #segmentation_img = (segmentation_img > 0.5).astype(np.float)
   labelVotesMap[segmentIndex] = segmentation_img
@@ -1421,7 +1421,7 @@ if withoutQP:
     #       break
     #     continue
     #   continue
-  
+
 
   filteredWallPoints = []
   validPointMask = {}
@@ -1431,14 +1431,14 @@ if withoutQP:
       validPointMask[pointIndex] = True
       pass
     continue
-  
+
   filteredWallLines= []
   for wallLine in wallLines:
     if wallLine[0] in validPointMask and wallLine[1] in validPointMask:
       filteredWallLines.append(wallLine)
       pass
     continue
-  
+
   #adjustPoints(wallPoints, filteredWallLines)
   writePoints(filteredWallPoints, [])
 
@@ -1463,7 +1463,7 @@ if withoutQP:
 
   doorTypesOri = copy.deepcopy(doorTypes)
   doorTypes.sort(key=lambda doorType: doorType[2], reverse=True)
-  
+
 
   invalidDoors = {}
   doorConflictMap = {}
@@ -1472,7 +1472,7 @@ if withoutQP:
       doorConflictMap[conflictPair[0]] = []
       pass
     doorConflictMap[conflictPair[0]].append(conflictPair[1])
-    
+
     if conflictPair[1] not in doorConflictMap:
       doorConflictMap[conflictPair[1]] = []
       pass
@@ -1523,7 +1523,7 @@ if withoutQP:
     x_2 = int((point_2[0] + point_4[0]) / 2)
     y_1 = int((point_1[1] + point_2[1]) / 2)
     y_2 = int((point_3[1] + point_4[1]) / 2)
-    
+
     iconArea = (x_2 - x_1) * (y_2 - y_1)
     iconEvidenceSums = labelVotesMap[iconOffset:iconOffset + numIconTypes, y_2, x_2] + labelVotesMap[iconOffset:iconOffset + numIconTypes, y_1, x_1] - labelVotesMap[iconOffset:iconOffset + numIconTypes, y_2, x_1] - labelVotesMap[iconOffset:iconOffset + numIconTypes, y_1, x_2]
     iconTypes.append((iconIndex, np.argmax(iconEvidenceSums), np.max(iconEvidenceSums) / iconArea))
@@ -1539,7 +1539,7 @@ if withoutQP:
       iconConflictMap[conflictPair[0]] = []
       pass
     iconConflictMap[conflictPair[0]].append(conflictPair[1])
-    
+
     if conflictPair[1] not in iconConflictMap:
       iconConflictMap[conflictPair[1]] = []
       pass
@@ -1563,9 +1563,9 @@ if withoutQP:
         pass
       continue
     continue
-  
 
-  
+
+
   filteredIcons = []
   filteredIconTypes = []
   for iconIndex, icon in enumerate(icons):
@@ -1587,7 +1587,7 @@ if withoutQP:
   print('number of doors: ' + str(len(doorLines)))
   print('number of icons: ' + str(len(icons)))
   exit(1)
-    
+
 
 if False:
   #lines = [51]
@@ -1688,7 +1688,7 @@ try:
   w_p = [model.addVar(vtype = GRB.BINARY, name="point_" + str(pointIndex)) for pointIndex in xrange(len(wallPoints))]
   w_l = [model.addVar(vtype = GRB.BINARY, name="line_" + str(lineIndex)) for lineIndex in xrange(len(wallLines))]
 
-  d_l = [model.addVar(vtype = GRB.BINARY, name="door_line_" + str(lineIndex)) for lineIndex in xrange(len(doorLines))]  
+  d_l = [model.addVar(vtype = GRB.BINARY, name="door_line_" + str(lineIndex)) for lineIndex in xrange(len(doorLines))]
 
   i_r = [model.addVar(vtype = GRB.BINARY, name="icon_rectangle_" + str(lineIndex)) for lineIndex in xrange(len(icons))]
 
@@ -1696,7 +1696,7 @@ try:
   for iconIndex in xrange(len(icons)):
     i_types.append([model.addVar(vtype = GRB.BINARY, name="icon_type_" + str(iconIndex) + "_" + str(typeIndex)) for typeIndex in xrange(numIconTypes)])
     continue
-  
+
   l_dir_labels = []
   for lineIndex in xrange(len(wallLines)):
     dir_labels = []
@@ -1735,7 +1735,7 @@ try:
   # singleRooms[3] = False
   # singleRooms[7] = False
   # singleRooms[9] = False
-  
+
   # for label in xrange(numRoomTypes):
   #   if not singleRooms[label]:
   #     continue
@@ -1743,7 +1743,7 @@ try:
   #     model.addConstr(l_dir_labels[lineIndex][0][label] + l_dir_labels[lineIndex][1][label] <= 1, 'single room')
   #     continue
 
-    
+
 
   #loop constraints
   closeRooms = {}
@@ -1780,8 +1780,8 @@ try:
       continue
     continue
 
-         
- 
+
+
   #exteriorConstraints
   exteriorLineSum = LinExpr()
   for lineIndex in xrange(len(wallLines)):
@@ -1794,7 +1794,7 @@ try:
     continue
   model.addConstr(exteriorLineSum >= 1, 'exterior wall sum')
 
-  
+
   #line label constraints and objectives
   for lineIndex, directionNeighbors in enumerate(wallLineNeighbors):
     for direction, neighbors in enumerate(directionNeighbors):
@@ -1807,26 +1807,26 @@ try:
       if votesSum == 0:
         continue
       labelVotesSum /= votesSum
-      
- 
+
+
       for label in xrange(numRoomTypes):
         obj += l_dir_labels[lineIndex][direction][label] * (0.0 - labelVotesSum[label]) * labelWeight
         continue
       continue
-    continue  
+    continue
 
 
 
   #data terms
   #print(augmentedPointOffset)
   #print(len(wallPoints))
-  
+
   for pointIndex in xrange(len(wallPoints)):
     if pointIndex < augmentedPointOffset:
       obj += (1 - w_p[pointIndex]) * junctionWeight #* len(wallPointOrientationLinesMap[pointIndex])
     else:
       obj += w_p[pointIndex] * augmentedJunctionWeight #* len(wallPointOrientationLinesMap[pointIndex])
-    continue    
+    continue
 
   #door endpoint constraints
   pointDoorsMap = {}
@@ -1851,7 +1851,7 @@ try:
     continue
 
 
-  
+
   #icon corner constraints
   pointIconsMap = {}
   for iconIndex, icon in enumerate(icons):
@@ -1877,14 +1877,14 @@ try:
 
   gapWeight = 1
   pixelEvidenceWeight = 1
-  
+
   for lineIndex, line in enumerate(wallLines):
     point = wallPoints[line[0]]
     neighborPoint = wallPoints[line[1]]
     lineDim = calcLineDim(wallPoints, line)
     wallCost = (abs(neighborPoint[1 - lineDim] - point[1 - lineDim]) / gap - 0.5) * gapWeight
     #obj += w_l[lineIndex] * wallCost * wallWeight
-    
+
     fixedValue = int(round((neighborPoint[1 - lineDim] + point[1 - lineDim]) / 2))
     wallEvidenceSums = [0, 0]
     for delta in xrange(int(abs(neighborPoint[lineDim] - point[lineDim]) + 1)):
@@ -1901,17 +1901,17 @@ try:
     obj += -wallEvidenceSum * w_l[lineIndex] * wallWeight
 
 
-  
+
   for lineIndex, line in enumerate(doorLines):
     #obj += -d_l[lineIndex] * doorWeight * abs(neighborPoint[lineDim] - point[lineDim] + 1) / maxDim
     #continue
-  
+
     point = doorPoints[line[0]]
     neighborPoint = doorPoints[line[1]]
     lineDim = calcLineDim(doorPoints, line)
     #doorCost = (abs(neighborPoint[1 - lineDim] - point[1 - lineDim]) / gap - 1) * gapWeight
     #obj += d_l[lineIndex] * doorCost * doorWeight
-    
+
     fixedValue = int(round((neighborPoint[1 - lineDim] + point[1 - lineDim]) / 2))
     #doorEvidenceSums = [0 for typeIndex in xrange(numDoorTypes)]
     doorEvidenceSum = 0
@@ -1924,11 +1924,11 @@ try:
       doorEvidenceSum += np.sum(labelMap[doorOffset:doorOffset + numDoorTypes, min(max(intermediatePoint[1], 0), height - 1), min(max(intermediatePoint[0], 0), width - 1)])
       #doorEvidenceSum += float(np.sum(labelMap[doorOffset:doorOffset + numDoorTypes, min(max(intermediatePoint[1], 0), height - 1), min(max(intermediatePoint[0], 0), width - 1)]) > 0.5) * 2 - 1
       continue
-    
+
     doorEvidenceSum /= maxDim
     obj += -doorEvidenceSum * d_l[lineIndex] * doorWeight
-    
-  
+
+
   for iconIndex, icon in enumerate(icons):
     point_1 = iconPoints[icon[0]]
     point_2 = iconPoints[icon[1]]
@@ -1952,8 +1952,8 @@ try:
         obj += i_types[iconIndex][typeIndex] * (0 - iconEvidenceSums[typeIndex] / iconArea) * iconTypeWeight
       continue
     continue
-  
-  
+
+
   for iconIndex in xrange(len(icons)):
     typeSum = LinExpr(0)
     for typeIndex in xrange(numIconTypes):
@@ -1961,9 +1961,9 @@ try:
       continue
     model.addConstr(typeSum == i_r[iconIndex])
     continue
-    
 
- 
+
+
   # #icon wall constraints
   # iconWallTypesMap = {}
   # iconWallTypesMap[0] = (4, )
@@ -1975,7 +1975,7 @@ try:
   # iconWallTypesMap[6] = (1, 2, 3, 4, 5, 6, 8, 9)
   # #iconWallTypesMap[7] = (1, 2, 6, 10)
   # iconWallTypesMap[9] = (1, 2, 3, 8)
-  
+
   # #print(iconWallLineNeighbors[8])
   # for iconIndex, lines in enumerate(iconWallLineNeighbors):
   #   for typeIndex in xrange(numIconTypes):
@@ -1990,7 +1990,7 @@ try:
   #     model.addConstr(i_types[iconIndex][typeIndex] <= wallSum)
   #     continue
   #   continue
-  
+
 
   #line sum constraints and objectives
   for pointIndex, orientationLinesMap in enumerate(wallPointOrientationLinesMap):
@@ -2002,18 +2002,18 @@ try:
       for lineIndex in lines:
         lineSum += w_l[lineIndex]
         continue
-      
+
       model.addConstr(lineSum == w_p[pointIndex], "line_sum_" + str(pointIndex) + "_" + str(orientation))
       #obj += (w_p[pointIndex] - lineSum) * junctionLineWeight
       #obj += (1 - lineSum) * junctionWeight
       pointLineSum += lineSum
       continue
-    
+
     #if wallPoints[pointIndex][2] > 0:
     #model.addConstr(pointLineSum >= wallPoints[pointIndex][2] * w_p[pointIndex], 'point line sum')
       #model.addConstr(pointLineSum >= 2 * w_p[pointIndex], 'point line sum')
       #pass
-      
+
     continue
 
 
@@ -2029,7 +2029,7 @@ try:
         pass
       continue
     continue
-  
+
 
   #conflict pair constraints
   for conflictLinePair in conflictWallLinePairs:
@@ -2054,10 +2054,10 @@ try:
     for lineIndex in lines:
       lineSum += w_l[lineIndex]
       continue
-    model.addConstr(d_l[doorIndex] <= lineSum, 'd <= line sum')    
+    model.addConstr(d_l[doorIndex] <= lineSum, 'd <= line sum')
     continue
 
-  
+
 
 
   if False:
@@ -2080,19 +2080,19 @@ try:
     #exit(1)
 
   model.setObjective(obj, GRB.MINIMIZE)
-  #model.update()
+  model.update()
   model.setParam('TimeLimit', 60)
   model.optimize()
-  
+
   if model.status == GRB.Status.INF_OR_UNBD:
     # Turn presolve off to determine whether model is infeasible
     # or unbounded
     model.setParam(GRB.Param.Presolve, 0)
     model.optimize()
-    
+
   model.write('test/model.lp')
   #print(model.status)
-  if model.status == GRB.Status.OPTIMAL: 
+  if model.status == GRB.Status.OPTIMAL:
     filteredWallLines = []
     filteredWallLabels = []
     filteredWallTypes = []
@@ -2104,7 +2104,7 @@ try:
       filteredWallLines.append(wallLines[lineIndex])
 
       filteredWallTypes.append(0)
-      
+
       labels = [11, 11]
       for direction in xrange(2):
         for label in xrange(numRoomTypes):
@@ -2113,7 +2113,7 @@ try:
             break
           continue
         continue
-      
+
       filteredWallLabels.append(labels)
       print('wall', lineIndex, labels)
       line = wallLines[lineIndex]
@@ -2130,7 +2130,7 @@ try:
         wallPointLabels[line[1]][3] = labels[1]
         pass
       continue
-    
+
     adjustPoints(wallPoints, filteredWallLines)
     drawLines('test/result_line.png', width, height, wallPoints, filteredWallLines, filteredWallLabels)
     resultImage = drawLines('', width, height, wallPoints, filteredWallLines, filteredWallLabels, None, 10)
@@ -2142,14 +2142,14 @@ try:
         continue
       print(('door', lineIndex))
       filteredDoorLines.append(doorLines[lineIndex])
-      
+
       filteredDoorTypes.append(0)
       continue
 
     filteredDoorWallMap = findLineMapSingle(doorPoints, filteredDoorLines, wallPoints, filteredWallLines, gap / 2)
     adjustDoorPoints(doorPoints, filteredDoorLines, wallPoints, filteredWallLines, filteredDoorWallMap)
     drawLines('test/result_door.png', width, height, doorPoints, filteredDoorLines)
-    
+
     filteredIcons = []
     filteredIconTypes = []
     for iconIndex, iconVar in enumerate(i_r):
@@ -2166,13 +2166,13 @@ try:
         continue
 
       print(('icon', iconIndex, iconType))
-      
+
       filteredIconTypes.append(iconType)
       continue
 
     #adjustPoints(iconPoints, filteredIconLines)
     #drawLines('test/lines_results_icon.png', width, height, iconPoints, filteredIconLines)
-    drawRectangles('test/result_icon.png', width, height, iconPoints, filteredIcons, filteredIconTypes)    
+    drawRectangles('test/result_icon.png', width, height, iconPoints, filteredIcons, filteredIconTypes)
 
 
     #resultImage = drawLines('', width, height, doorPoints, filteredDoorLines, [], resultImage, 4, 255)
@@ -2186,7 +2186,7 @@ try:
     for pointType, orientationOrientations in enumerate(pointOrientations):
       for orientation, orientations in enumerate(orientationOrientations):
         orientationMap[orientations] = orientation
-        
+
     for pointIndex, point in enumerate(wallPoints):
       #if w_p[pointIndex].x < 0.5:
       #continue
@@ -2203,7 +2203,7 @@ try:
 
       if len(orientations) == 0:
         continue
-      
+
       if len(orientations) < len(wallPointOrientationLinesMap[pointIndex]):
         print(pointIndex)
         print(wallPoints[pointIndex])
@@ -2238,7 +2238,7 @@ try:
       for doorIndex, door in enumerate(filteredDoorLines):
         point_1 = doorPoints[door[0]]
         point_2 = doorPoints[door[1]]
-        
+
         #result_file.write(str(int(round(point_1[0]))) + '\t' + str(int(round(point_1[1]))) + '\t')
         #result_file.write(str(int(round(point_2[0]))) + '\t' + str(int(round(point_2[1]))) + '\t')
         result_file.write(str(point_1[0]) + '\t' + str(point_1[1]) + '\t')
@@ -2260,13 +2260,13 @@ try:
         x_2 = int((point_2[0] + point_4[0]) / 2)
         y_1 = int((point_1[1] + point_2[1]) / 2)
         y_2 = int((point_3[1] + point_4[1]) / 2)
-        
+
         result_file.write(str(x_1) + '\t' + str(y_1) + '\t')
         result_file.write(str(x_2) + '\t' + str(y_2) + '\t')
         result_file.write(iconNumberNameMap[filteredIconTypes[iconIndex]] + '\t')
         result_file.write(str(iconNumberStyleMap[filteredIconTypes[iconIndex]]) + '\t')
         result_file.write('1\n')
-        
+
       result_file.close()
 
 
@@ -2287,17 +2287,17 @@ try:
         os.remove('test/icons_out.txt')
       except OSError:
         pass
-      pass    
-      
-        
-        
+      pass
+
+
+
   elif model.status != GRB.Status.INFEASIBLE:
     print('Optimization was stopped with status %d' % model.status)
   else:
     print('infeasible')
     #model.ComputeIIS()
     #model.write("test/model.ilp")
-    
+
 except GurobiError as e:
   print('Error code ' + str(e.errno) + ": " + str(e))
 

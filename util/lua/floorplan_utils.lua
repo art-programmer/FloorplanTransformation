@@ -2836,7 +2836,10 @@ function utils.saveRepresentation(filename, representation, ratio)
       representation = utils.scaleRepresentationByRatio(representation, ratio)
    end
 
-   pl.dir.makepath(filename:match('(.+)/(.+)'))
+   if filename:match('(.+)/(.+)') ~= nil then
+      pl.dir.makepath(filename:match('(.+)/(.+)'))
+   end
+
    local representationFile = io.open(filename, 'w')
    representation.points = nil
    for itemMode, items in pairs(representation) do
@@ -3399,7 +3402,7 @@ end
 
 function utils.invertFloorplanHeuristic(floorplan)
    pl.dir.makepath('test/')
-   
+
    local width = floorplan:size(3)
    local height = floorplan:size(2)
 
@@ -6066,7 +6069,7 @@ function utils.getSegmentation(width, height, representation, lineWidth, floorpl
 		     selectedRegion[pointIndex][1] = math.min(math.max(selectedRegion[pointIndex][1], 1), width)
 		     selectedRegion[pointIndex][2] = math.min(math.max(selectedRegion[pointIndex][2], 1), height)
 		  end
-		  
+
                   floorplanSegmentation[{{selectedRegion[1][2], selectedRegion[2][2]}, {selectedRegion[1][1], selectedRegion[2][1]}}] = utils.getNumber('labels', label[3])
                   roomMask[{{selectedRegion[1][2], selectedRegion[2][2]}, {selectedRegion[1][1], selectedRegion[2][1]}}] = 0
                end
@@ -8860,7 +8863,7 @@ function utils.estimateHeatmaps(modelHeatmap, floorplan, scaleType)
    local width, height = floorplan:size(3), floorplan:size(2)
    local sampleDim = 256
 
-   
+
    package.path = 'datasets/?.lua;' .. package.path
    package.path = '?.lua;' .. package.path
    local dataset = require('floorplan-representation')
