@@ -29,7 +29,6 @@ local floorplan = image.load(opt.floorplanFilename, 3)
 local representationPrediction = fp_ut.invertFloorplan(modelHeatmap, floorplan)
 
 local representationImage = fp_ut.drawRepresentationImage(floorplan, representationPrediction)
-print(opt.outputFilename .. '.txt')
 fp_ut.saveRepresentation(opt.outputFilename .. '.txt', representationPrediction)
 fp_ut.writePopupData(floorplan:size(3), floorplan:size(2), representationPrediction, opt.outputFilename .. '_popup', representationPrediction)
 image.save(opt.outputFilename .. '.png', representationImage)
