@@ -15,6 +15,8 @@ This code implements the algorithm described in our paper in Torch7.
 ## Updates
 We have a follow-up project which reconstructs floorplans from 3D scans. You can find it [here](https://github.com/art-programmer/FloorNet).
 
+The code for the annotator is now available under folder *annotator/*.
+
 ## Requirements
 
 - Please install the latest Torch
