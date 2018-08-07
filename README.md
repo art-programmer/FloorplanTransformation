@@ -29,13 +29,13 @@ For annotator codes, please see [here](#annotator).
 - [ffi](http://luajit.org/ext_ffi.html)
 - [csvigo](https://github.com/clementfarabet/lua---csv)
 - [penlight](https://github.com/stevedonovan/Penlight)
-- [opencv](https://github.com/marcoscoffier/lua---opencv)
+- [opencv](https://github.com/marcoscoffier/lua---opencv) (Probably need to be compiled from source)
 - [lunatic-python](https://labix.org/lunatic-python)
 
 ### Python packages
 - [numpy](http://www.scipy.org/scipylib/download.html)
 - [Gurobi](http://www.gurobi.com)
-- [OpenCV](https://opencv.org/)
+- [OpenCV](https://opencv.org/) (v3.4.1)
 
 ## Trained models
 To use our trained model, please first download it from [Google Drive](https://drive.google.com/file/d/0B2rs82y7tjKrQk0yRFB3RHVDUXM/view?usp=sharing), and put it under folder "checkpoint/" (or specify the its path via option -loadModel="path to the downloaded model").
