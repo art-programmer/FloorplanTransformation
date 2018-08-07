@@ -18,8 +18,9 @@ We have a follow-up project which reconstructs floorplans from 3D scans. You can
 For annotator codes, please see [here](#annotator).
 ## Requirements
 
-- Please install the latest Torch
-- Please install Python 2.7
+- Please install the latest Torch.
+- Please install Python 2.7.
+- We used a Nvidia Titan GPU with CUDA 8.0 installed.
 
 ### Torch packages
 - [nn](https://github.com/torch/nn)
