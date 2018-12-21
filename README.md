@@ -13,9 +13,7 @@ To learn more, please refer to our ICCV 2017 [paper](http://art-programmer.githu
 This code implements the algorithm described in our paper in Torch7.
 
 ## Updates
-A **PyTorch** version is now available under folder *pytorch/*.
-
-An IP solver without Gurobi is available at *pytorch/IP.py*.
+A **PyTorch** version is now available under folder *pytorch/*. It is much easier to compile and try. Please see the README file under the folder for details. Note that we haven't evaluated the performance of it yet. We also provide a free IP solver (not relying on Gurobi) at *pytorch/IP.py*.
 
 We have a follow-up project which reconstructs floorplans from 3D scans. You can find it [here](https://github.com/art-programmer/FloorNet).
 
