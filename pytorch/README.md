@@ -11,5 +11,5 @@ Set *restore=1* to resume training from a checkpoint.
 
 ## Testing
 ```bash
-python train --task=test
+python train.py --task=test
 ```
