@@ -44,7 +44,7 @@ This code implements the algorithm described in our paper in Torch7.
 ## Trained models
 To use our trained model, please first download it from [Google Drive](https://drive.google.com/file/d/0B2rs82y7tjKrQk0yRFB3RHVDUXM/view?usp=sharing), and put it under folder "checkpoint/" (or specify the its path via option -loadModel="path to the downloaded model").
 
-Our model is fine-tuned based on the pose estimation network introduced in the paper, "Human pose estimation via Convolutional Part Heatmap Regression". You can downloaded their model [here](https://www.adrianbulat.com/human-pose-estimation) (the MPII one), and put it under folder "PoseEstimation/" (or specify the its path via option -loadPoseEstimationModel)
+Our model is fine-tuned based on the pose estimation network introduced in the paper, "Human pose estimation via Convolutional Part Heatmap Regression". You can download their model [here](https://www.adrianbulat.com/human-pose-estimation) (the MPII one), and put it under folder "PoseEstimation/" (or specify the its path via option -loadPoseEstimationModel)
 
 ## Data
 We don't have the permission to share the rasterized images, which are from the LIFULL dataset. Here we only share our vector-graphics annotations which might be helpful for other tasks.
