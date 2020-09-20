@@ -1,5 +1,3 @@
-import pdb
-
 import torch.nn as nn
 import math
 import torch.utils.model_zoo as model_zoo
@@ -9,6 +7,8 @@ __all__ = ['DRN', 'drn26', 'drn42', 'drn58']
 
 
 webroot = 'https://tigress-web.princeton.edu/~fy/drn/models/'
+webroot = 'http://dl.yf.io/drn/'
+# https://github.com/fyu/drn/issues/45
 
 model_urls = {
     'drn-c-26': webroot + 'drn_c_26-ddedf421.pth',
