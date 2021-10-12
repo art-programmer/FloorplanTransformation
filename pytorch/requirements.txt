@@ -1,5 +1,5 @@
 numpy==1.15.4
-opencv-python==3.4.4.19
+opencv-python==4.2.0.32
 PuLP==1.6.9
 scikit-image==0.14.1
 scipy==1.1.0
